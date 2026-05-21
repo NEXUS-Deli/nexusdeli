@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router'
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";

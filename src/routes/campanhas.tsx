@@ -90,7 +90,7 @@ function CampaignsPage() {
   const [segment, setSegment] = useState("");
   const [instance, setInstance] = useState("");
   const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
-  const [agent, setAgent] = useState("Sofia");
+  const agent = "Sofia";
   const [message, setMessage] = useState(
     "Olá, {nome_cliente}! 🍕\n\nFaz {dias_inativo} dias que você não pede seu prato favorito ({prato_favorito}) aqui na nossa loja.\n\nPara te dar uma força especial hoje, criamos um cupom especial de {desconto}% para você pedir de novo! Use: {cupom_desconto} no site ou peça direto por aqui!\n\nQue tal aproveitar?"
   );
@@ -869,18 +869,7 @@ function CampaignsPage() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Agente IA Resposta</label>
-                          <select
-                            value={agent}
-                            onChange={(e) => setAgent(e.target.value)}
-                            className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/60 transition-colors"
-                          >
-                            <option value="Sofia">IA Sofia (Recuperação)</option>
-                            <option value="Léo">IA Léo (Comercial)</option>
-                            <option value="Júlia">IA Júlia (Pós-Venda)</option>
-                          </select>
-                        </div>
+                        <div className="space-y-1.5"></div>
                       </div>
 
                       {whatsappInstances.length === 0 && !isLoadingInstances && (

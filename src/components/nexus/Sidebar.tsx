@@ -6,7 +6,7 @@ const nav = [
   { icon: LayoutDashboard, label: "Operação", to: "/" },
   { icon: Megaphone, label: "Campanhas", to: "/campanhas" },
   { icon: Percent, label: "Promoções", to: "/promocoes" },
-  { icon: Bot, label: "Agentes IA", to: "/agentes-ia" },
+
   { icon: MessageCircle, label: "WhatsApp", to: "/whatsapp" },
   { icon: Users, label: "Clientes", to: "/clientes" },
   { icon: Zap, label: "Automações", to: "/automacoes" },
