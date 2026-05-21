@@ -1,15 +1,31 @@
+<<<<<<< HEAD
 import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent } from "lucide-react";
+=======
+import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone } from "lucide-react";
+>>>>>>> a0e7b6a (feat: implementa módulo completo de impressão térmica)
 import { motion } from "framer-motion";
 import { Link, useLocation } from "@tanstack/react-router";
 
 const nav = [
   { icon: LayoutDashboard, label: "Operação", to: "/" },
+<<<<<<< HEAD
   { icon: Megaphone, label: "Campanhas", to: "/campanhas" },
   { icon: Percent, label: "Promoções", to: "/promocoes" },
 
   { icon: MessageCircle, label: "WhatsApp", to: "/whatsapp" },
   { icon: Users, label: "Clientes", to: "/clientes" },
   { icon: Zap, label: "Automações", to: "/automacoes" },
+=======
+  { icon: ShoppingBag, label: "Pedidos", to: "/pedidos" },
+  { icon: Printer, label: "Impressão", to: "/fila-impressao" },
+  { icon: Megaphone, label: "Campanhas", to: "/campanhas" },
+  { icon: Percent, label: "Promoções", to: "/promocoes" },
+  { icon: Package, label: "Produtos", to: "/produtos" },
+  { icon: MessageCircle, label: "WhatsApp", to: "/whatsapp" },
+  { icon: Users, label: "Clientes", to: "/clientes" },
+  { icon: Zap, label: "Automações", to: "/automacoes" },
+  { icon: Settings, label: "Configurações", to: "/configuracoes" },
+>>>>>>> a0e7b6a (feat: implementa módulo completo de impressão térmica)
 ];
 
 export function Sidebar() {
@@ -78,9 +94,15 @@ export function Sidebar() {
         <div className="mt-2 text-[11px] text-muted-foreground/80">
           3 instâncias WhatsApp · 2 agentes IA online
         </div>
+<<<<<<< HEAD
         <button className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background/60 px-2.5 py-2 text-xs font-medium hover:bg-accent cursor-pointer">
           <Settings className="h-3.5 w-3.5" /> Configurações
         </button>
+=======
+        <Link to="/cardapio" className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary hover:bg-primary/20 cursor-pointer">
+          <Smartphone className="h-3.5 w-3.5" /> Ver Cardápio Digital
+        </Link>
+>>>>>>> a0e7b6a (feat: implementa módulo completo de impressão térmica)
       </div>
     </aside>
   );
