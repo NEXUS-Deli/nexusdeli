@@ -161,11 +161,14 @@ function ProductsPage() {
 
     if (uploadError) {
       console.error("Erro no upload:", uploadError);
-      const msg =
-        uploadError.message === "The resource was not found"
-          ? 'Bucket "product-images" não existe. Crie no Supabase: Storage > New Bucket > product-images (público)'
-          : uploadError.message;
-      throw new Error(msg);
+      if (uploadError.message === "The resource was not found") {
+        throw new Error(
+          'Bucket "product-images" não existe. Crie manualmente no Supabase: ' +
+          'Storage > New Bucket > nome: product-images, público: ON, ' +
+          'limite: 2MB, tipos: image/png, image/jpeg, image/webp'
+        );
+      }
+      throw new Error(uploadError.message);
     }
 
     const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(fileName);
