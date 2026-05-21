@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
@@ -20,157 +21,243 @@ export const Route = createFileRoute("/promocoes")({
   component: PromocoesPage,
 });
 
-// Mock Initial Coupons
-const initialCoupons = [
-  { id: 1, code: "RECONECTA15", discount: 15, minOrder: 50, status: "ativo", usage: 142 },
-  { id: 2, code: "VOLTA5", discount: 5, minOrder: 30, status: "ativo", usage: 89 },
-  { id: 3, code: "VIP20", discount: 20, minOrder: 80, status: "ativo", usage: 34 },
-  { id: 4, code: "FIMDESEMANA", discount: 10, minOrder: 40, status: "pausado", usage: 12 },
-];
-
-// Mock Initial Message Templates
-const initialTemplates = [
-  { id: 1, name: "Reativação 15 dias", body: "Olá, {nome_cliente}! Tudo bem? 🍕\n\nNotamos que já faz 15 dias desde o seu último pedido de {prato_favorito}.\n\nPara matar a saudade, que tal pedir hoje mesmo? Preparamos um presente: 5% de desconto usando o cupom {cupom_desconto}!\n\nAproveite!" },
-  { id: 2, name: "Reativação Crítica 30 dias", body: "Oi, {nome_cliente}! Que saudade! ❤️\n\nFaz 30 dias que você não aproveita nossas delícias. Para comemorar seu retorno, liberamos 15% OFF no seu prato favorito ({prato_favorito})!\n\nUse o cupom {cupom_desconto} nas próximas 24 horas!\n\nPeça por aqui!" },
-  { id: 3, name: "Aniversariante Especial", body: "Parabéns, {nome_cliente}! 🎂🎉\n\nHoje é seu dia especial e a Nexus Deli quer comemorar com você! Preparamos um cupom de 20% de desconto sem pedido mínimo para você aproveitar o seu prato favorito ({prato_favorito})!\n\nUse: {cupom_desconto}\n\nTenha um dia maravilhoso!" },
-];
-
-// Mock Triggers (Automations Rules)
-const initialTriggers = [
-  { id: 1, name: "Reativação Semanal (15 dias inativo)", delay: "15 dias", templateName: "Reativação 15 dias", couponCode: "VOLTA5", active: true },
-  { id: 2, name: "Recuperação Crítica (30 dias inativo)", delay: "30 dias", templateName: "Reativação Crítica 30 dias", couponCode: "RECONECTA15", active: true },
-  { id: 3, name: "Aniversário do Cliente", delay: "No dia do aniversário", templateName: "Aniversariante Especial", couponCode: "VIP20", active: true },
-];
+const getDeliveryId = async (): Promise<string> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || "00000000-0000-0000-0000-000000000000";
+  } catch {
+    return "00000000-0000-0000-0000-000000000000";
+  }
+};
 
 function PromocoesPage() {
   const [activeSubTab, setActiveSubTab] = useState<"cupons" | "templates" | "gatilhos">("cupons");
 
   // Coupons States
-  const [coupons, setCoupons] = useState(initialCoupons);
+  const [coupons, setCoupons] = useState<any[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState("");
   const [couponMinOrder, setCouponMinOrder] = useState("");
   
   // Templates States
-  const [templates, setTemplates] = useState(initialTemplates);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [templateName, setTemplateName] = useState("");
   const [templateBody, setTemplateBody] = useState("");
   const [selectedTemplateIndex, setSelectedTemplateIndex] = useState<number | null>(0);
 
   // Triggers States
-  const [triggers, setTriggers] = useState(initialTriggers);
+  const [triggers, setTriggers] = useState<any[]>([]);
   const [triggerName, setTriggerName] = useState("");
   const [triggerDelay, setTriggerDelay] = useState("15 dias");
   const [triggerTemplate, setTriggerTemplate] = useState("Reativação 15 dias");
   const [triggerCoupon, setTriggerCoupon] = useState("VOLTA5");
+  const [triggerPeriod, setTriggerPeriod] = useState("qualquer");
+
+  const loadData = useCallback(async () => {
+    try {
+      const deliveryId = await getDeliveryId();
+      
+      const [resCoupons, resTemplates, resTriggers] = await Promise.all([
+        supabase.from("coupons").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+        supabase.from("message_templates").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+        supabase.from("triggers").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+      ]);
+
+      if (resCoupons.data) setCoupons(resCoupons.data);
+      if (resTemplates.data) setTemplates(resTemplates.data);
+      if (resTriggers.data) setTriggers(resTriggers.data);
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Create Coupon
-  const handleCreateCoupon = (e: React.FormEvent) => {
+  const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!couponCode.trim() || !couponDiscount) {
       toast.error("Preencha todos os campos do cupom.");
       return;
     }
 
-    const newCoupon = {
-      id: coupons.length + 1,
-      code: couponCode.toUpperCase().replace(/\s+/g, ""),
-      discount: Number(couponDiscount),
-      minOrder: Number(couponMinOrder) || 0,
-      status: "ativo",
-      usage: 0
-    };
+    try {
+      const deliveryId = await getDeliveryId();
+      const { data, error } = await supabase.from("coupons").insert([{
+        delivery_id: deliveryId,
+        code: couponCode.toUpperCase().replace(/\s+/g, ""),
+        discount: Number(couponDiscount),
+        min_order: Number(couponMinOrder) || 0,
+        status: "ativo",
+        usage: 0
+      }]).select();
 
-    setCoupons([...coupons, newCoupon]);
-    setCouponCode("");
-    setCouponDiscount("");
-    setCouponMinOrder("");
-    toast.success(`Cupom "${newCoupon.code}" criado com sucesso!`);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setCoupons([data[0], ...coupons]);
+        setCouponCode("");
+        setCouponDiscount("");
+        setCouponMinOrder("");
+        toast.success(`Cupom "${data[0].code}" criado com sucesso!`);
+      } else {
+        throw new Error("Nenhum dado retornado (bloqueio RLS).");
+      }
+    } catch (err: any) {
+      console.error(">>> [DEBUG] Erro ao criar cupom:", err);
+      toast.error("Erro ao criar cupom.");
+      window.alert("Erro ao salvar cupom: " + (err.message || ""));
+    }
   };
 
   // Toggle Coupon Status
-  const toggleCoupon = (id: number) => {
-    setCoupons(coupons.map(c => {
-      if (c.id === id) {
-        const nextStatus = c.status === "ativo" ? "pausado" : "ativo";
-        toast.info(`Cupom "${c.code}" foi ${nextStatus === "pausado" ? "pausado" : "ativado"}.`);
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    }));
+  const toggleCoupon = async (id: string, currentStatus: string, code: string) => {
+    try {
+      const deliveryId = await getDeliveryId();
+      const nextStatus = currentStatus === "ativo" ? "pausado" : "ativo";
+      const { error } = await supabase.from("coupons").update({ status: nextStatus }).eq("id", id).eq("delivery_id", deliveryId);
+      if (error) throw error;
+
+      setCoupons(coupons.map(c => c.id === id ? { ...c, status: nextStatus } : c));
+      toast.info(`Cupom "${code}" foi ${nextStatus === "pausado" ? "pausado" : "ativado"}.`);
+    } catch (err) {
+      toast.error("Erro ao atualizar cupom.");
+    }
   };
 
-  const deleteCoupon = (id: number, code: string) => {
-    setCoupons(coupons.filter(c => c.id !== id));
-    toast.success(`Cupom "${code}" removido.`);
+  const deleteCoupon = async (id: string, code: string) => {
+    try {
+      const deliveryId = await getDeliveryId();
+      const { error } = await supabase.from("coupons").delete().eq("id", id).eq("delivery_id", deliveryId);
+      if (error) throw error;
+
+      setCoupons(coupons.filter(c => c.id !== id));
+      toast.success(`Cupom "${code}" removido.`);
+    } catch (err) {
+      toast.error("Erro ao remover cupom.");
+    }
   };
 
   // Create Template
-  const handleCreateTemplate = (e: React.FormEvent) => {
+  const handleCreateTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(">>> [DEBUG] handleCreateTemplate chamado!");
+    
     if (!templateName.trim() || !templateBody.trim()) {
+      console.log(">>> [DEBUG] Erro de validação: campos vazios");
       toast.error("Por favor, preencha o nome e o corpo do modelo.");
       return;
     }
 
-    const newTemplate = {
-      id: templates.length + 1,
-      name: templateName,
-      body: templateBody
-    };
+    try {
+      console.log(">>> [DEBUG] Pegando deliveryId...");
+      const deliveryId = await getDeliveryId();
+      console.log(">>> [DEBUG] deliveryId:", deliveryId);
+      
+      console.log(">>> [DEBUG] Inserindo no Supabase...");
+      const { data, error } = await supabase.from("message_templates").insert([{
+        delivery_id: deliveryId,
+        name: templateName,
+        body: templateBody
+      }]).select();
 
-    setTemplates([...templates, newTemplate]);
-    setSelectedTemplateIndex(templates.length); // Select new template
-    setTemplateName("");
-    setTemplateBody("");
-    toast.success(`Modelo "${newTemplate.name}" adicionado à biblioteca.`);
+      console.log(">>> [DEBUG] Resposta do Supabase:", { data, error });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setTemplates([data[0], ...templates]);
+        setSelectedTemplateIndex(0);
+        setTemplateName("");
+        setTemplateBody("");
+        toast.success(`Modelo "${data[0].name}" adicionado à biblioteca.`);
+      } else {
+        throw new Error("Nenhum dado retornado da inserção. Pode ser um bloqueio de RLS.");
+      }
+    } catch (err: any) {
+      console.error(">>> [DEBUG] Erro detalhado ao salvar modelo:", err);
+      toast.error("Erro ao salvar modelo. Verifique o console.");
+      window.alert("Erro ao salvar o modelo: " + (err.message || "Verifique se as permissões (RLS) estão corretas e se você está logado."));
+    }
   };
 
-  const deleteTemplate = (id: number, name: string) => {
-    setTemplates(templates.filter(t => t.id !== id));
-    if (selectedTemplateIndex !== null && selectedTemplateIndex >= templates.length - 1) {
-      setSelectedTemplateIndex(0);
+  const deleteTemplate = async (id: string, name: string) => {
+    try {
+      const deliveryId = await getDeliveryId();
+      const { error } = await supabase.from("message_templates").delete().eq("id", id).eq("delivery_id", deliveryId);
+      if (error) throw error;
+
+      setTemplates(templates.filter(t => t.id !== id));
+      if (selectedTemplateIndex !== null && selectedTemplateIndex >= templates.length - 1) {
+        setSelectedTemplateIndex(0);
+      }
+      toast.success(`Modelo "${name}" removido.`);
+    } catch (err) {
+      toast.error("Erro ao remover modelo.");
     }
-    toast.success(`Modelo "${name}" removido.`);
   };
 
   // Create Trigger
-  const handleCreateTrigger = (e: React.FormEvent) => {
+  const handleCreateTrigger = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!triggerName.trim()) {
       toast.error("Digite o nome da automação.");
       return;
     }
 
-    const newTrigger = {
-      id: triggers.length + 1,
-      name: triggerName,
-      delay: triggerDelay,
-      templateName: triggerTemplate,
-      couponCode: triggerCoupon,
-      active: true
-    };
+    try {
+      const deliveryId = await getDeliveryId();
+      const { data, error } = await supabase.from("triggers").insert([{
+        delivery_id: deliveryId,
+        name: triggerName,
+        delay: triggerDelay,
+        template_name: triggerTemplate,
+        coupon_code: triggerCoupon,
+        period: triggerPeriod,
+        active: true
+      }]).select();
 
-    setTriggers([...triggers, newTrigger]);
-    setTriggerName("");
-    toast.success(`Automação "${newTrigger.name}" configurada e ativada!`);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setTriggers([data[0], ...triggers]);
+        setTriggerName("");
+        toast.success(`Automação "${data[0].name}" configurada e ativada!`);
+      } else {
+        throw new Error("Nenhum dado retornado (bloqueio RLS).");
+      }
+    } catch (err: any) {
+      console.error(">>> [DEBUG] Erro ao salvar automação:", err);
+      toast.error("Erro ao salvar automação.");
+      window.alert("Erro ao salvar automação: " + (err.message || ""));
+    }
   };
 
   // Toggle Trigger Status
-  const toggleTrigger = (id: number) => {
-    setTriggers(triggers.map(t => {
-      if (t.id === id) {
-        const nextState = !t.active;
-        toast.success(`Automação "${t.name}" foi ${nextState ? "ativada" : "desativada"}.`);
-        return { ...t, active: nextState };
-      }
-      return t;
-    }));
+  const toggleTrigger = async (id: string, currentState: boolean, name: string) => {
+    try {
+      const deliveryId = await getDeliveryId();
+      const nextState = !currentState;
+      const { error } = await supabase.from("triggers").update({ active: nextState }).eq("id", id).eq("delivery_id", deliveryId);
+      if (error) throw error;
+
+      setTriggers(triggers.map(t => t.id === id ? { ...t, active: nextState } : t));
+      toast.success(`Automação "${name}" foi ${nextState ? "ativada" : "desativada"}.`);
+    } catch (err) {
+      toast.error("Erro ao atualizar automação.");
+    }
   };
 
-  const deleteTrigger = (id: number, name: string) => {
-    setTriggers(triggers.filter(t => t.id !== id));
-    toast.success(`Automação "${name}" removida.`);
+  const deleteTrigger = async (id: string, name: string) => {
+    try {
+      const deliveryId = await getDeliveryId();
+      const { error } = await supabase.from("triggers").delete().eq("id", id).eq("delivery_id", deliveryId);
+      if (error) throw error;
+
+      setTriggers(triggers.filter(t => t.id !== id));
+      toast.success(`Automação "${name}" removida.`);
+    } catch (err) {
+      toast.error("Erro ao remover automação.");
+    }
   };
 
   return (
@@ -306,7 +393,7 @@ function PromocoesPage() {
                               </td>
                               <td className="font-semibold text-foreground">{c.discount}% OFF</td>
                               <td className="text-muted-foreground">
-                                {c.minOrder > 0 ? `R$ ${c.minOrder.toFixed(2)}` : "Sem mínimo"}
+                                {c.min_order > 0 ? `R$ ${c.min_order}` : "Sem mínimo"}
                               </td>
                               <td>
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -319,7 +406,7 @@ function PromocoesPage() {
                               <td className="pr-5">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
-                                    onClick={() => toggleCoupon(c.id)}
+                                    onClick={() => toggleCoupon(c.id, c.status, c.code)}
                                     title={isActive ? "Pausar Cupom" : "Ativar Cupom"}
                                     className="h-8 w-8 grid place-items-center rounded-lg border border-border hover:bg-accent text-foreground transition-colors cursor-pointer"
                                   >
@@ -515,6 +602,19 @@ function PromocoesPage() {
                       </select>
                     </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">Horário de Disparo (Para o n8n)</label>
+                      <select
+                        value={triggerPeriod}
+                        onChange={(e) => setTriggerPeriod(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/60 transition-colors"
+                      >
+                        <option value="qualquer">Qualquer Horário</option>
+                        <option value="almoco">Disparar no Almoço</option>
+                        <option value="jantar">Disparar na Janta</option>
+                      </select>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground">Modelo de Msg</label>
@@ -576,9 +676,11 @@ function PromocoesPage() {
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
-                              <span>Envia: <strong>{t.templateName}</strong></span>
+                              <span>Envia: <strong>{t.template_name}</strong></span>
                               <span className="text-border">·</span>
-                              <span>Cupom: <strong className="font-mono text-primary">{t.couponCode}</strong></span>
+                              <span>Cupom: <strong className="font-mono text-primary">{t.coupon_code}</strong></span>
+                              <span className="text-border">·</span>
+                              <span>Horário: <strong>{t.period === "almoco" ? "Almoço" : t.period === "jantar" ? "Jantar" : "Qualquer"}</strong></span>
                             </div>
                           </div>
                         </div>
@@ -587,7 +689,7 @@ function PromocoesPage() {
                         <div className="flex items-center gap-3 self-end sm:self-center">
                           {/* Toggle switch visual */}
                           <button
-                            onClick={() => toggleTrigger(t.id)}
+                            onClick={() => toggleTrigger(t.id, t.active, t.name)}
                             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
                               t.active ? "bg-success" : "bg-muted"
                             }`}

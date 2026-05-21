@@ -219,13 +219,33 @@ function CampaignsPage() {
     }
   }, []);
 
+  const [dbTemplates, setDbTemplates] = useState<{ id: string; name: string; body: string }[]>([]);
+  const [dbCoupons, setDbCoupons] = useState<{ id: string; code: string; status: string }[]>([]);
+
+  const loadTemplatesAndCoupons = useCallback(async () => {
+    try {
+      const deliveryId = await getDeliveryId();
+      
+      const [resTemplates, resCoupons] = await Promise.all([
+        supabase.from("message_templates").select("id, name, body").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+        supabase.from("coupons").select("id, code, status").eq("delivery_id", deliveryId).eq("status", "ativo").order("created_at", { ascending: false })
+      ]);
+
+      if (resTemplates.data) setDbTemplates(resTemplates.data);
+      if (resCoupons.data) setDbCoupons(resCoupons.data);
+    } catch (err) {
+      console.error("Erro ao carregar templates e cupons:", err);
+    }
+  }, []);
+
   useEffect(() => {
     loadFolders();
     loadCampaigns();
     if (isNewParam) {
       loadWhatsappInstances();
+      loadTemplatesAndCoupons();
     }
-  }, [isNewParam, loadCampaigns, loadWhatsappInstances, loadFolders]);
+  }, [isNewParam, loadCampaigns, loadWhatsappInstances, loadFolders, loadTemplatesAndCoupons]);
 
   // Auto-Refresh (Live Sync a cada 15 segundos)
   useEffect(() => {
@@ -971,6 +991,25 @@ function CampaignsPage() {
                       </div>
 
                       <div className="space-y-2">
+                        {dbTemplates.length > 0 && (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-accent/20 p-2.5 rounded-xl border border-border gap-2">
+                            <label className="text-xs font-semibold text-foreground">Usar Modelo Salvo:</label>
+                            <select 
+                              className="bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary/60 transition-colors sm:w-2/3"
+                              onChange={(e) => {
+                                const t = dbTemplates.find(x => x.id === e.target.value);
+                                if (t) setMessage(t.body);
+                              }}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>Selecione um modelo da página Promoções...</option>
+                              {dbTemplates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
                         <textarea
                           rows={7}
                           required
@@ -995,6 +1034,22 @@ function CampaignsPage() {
                               {`{${variable.replace("_", " ")}}`}
                             </button>
                           ))}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="text-[10px] text-muted-foreground font-semibold py-1">
+                            Inserir Cupom Ativo:
+                          </span>
+                          {dbCoupons.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setMessage((prev) => prev + ` ${c.code}`)}
+                              className="text-[9.5px] font-bold border border-primary/30 text-primary rounded bg-primary/10 hover:bg-primary/20 px-1.5 py-0.5 transition-colors cursor-pointer"
+                            >
+                              {c.code}
+                            </button>
+                          ))}
+                          {dbCoupons.length === 0 && <span className="text-[9.5px] text-muted-foreground italic py-1">Nenhum cupom ativo na página Promoções</span>}
                         </div>
                       </div>
                     </div>
