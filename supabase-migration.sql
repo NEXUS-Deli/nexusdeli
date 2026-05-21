@@ -765,3 +765,48 @@ values (
   array['image/png', 'image/jpeg', 'image/webp']
 )
 on conflict (id) do nothing;
+
+-- Policies de storage para product-images
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where policyname = 'public_select_product_images'
+  ) then
+    create policy "public_select_product_images"
+    on storage.objects for select
+    using (bucket_id = 'product-images');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where policyname = 'auth_insert_product_images'
+  ) then
+    create policy "auth_insert_product_images"
+    on storage.objects for insert
+    with check (
+      bucket_id = 'product-images'
+      and auth.role() = 'authenticated'
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where policyname = 'auth_update_product_images'
+  ) then
+    create policy "auth_update_product_images"
+    on storage.objects for update
+    using (
+      bucket_id = 'product-images'
+      and auth.role() = 'authenticated'
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where policyname = 'auth_delete_product_images'
+  ) then
+    create policy "auth_delete_product_images"
+    on storage.objects for delete
+    using (
+      bucket_id = 'product-images'
+      and auth.role() = 'authenticated'
+    );
+  end if;
+end $$;

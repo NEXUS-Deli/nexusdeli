@@ -144,19 +144,6 @@ function ProductsPage() {
 
   const uploadImage = async (file: File): Promise<string | null> => {
     const bucket = "product-images";
-
-    const { data: bucketExists } = await supabase.storage.getBucket(bucket);
-    if (!bucketExists) {
-      const { error: createError } = await supabase.storage.createBucket(bucket, {
-        public: true,
-      });
-      if (createError) {
-        console.error("Erro ao criar bucket:", createError);
-        toast.error("Erro ao criar bucket de imagens. Crie manualmente no Supabase: Storage > New Bucket > product-images (público)");
-        return null;
-      }
-    }
-
     const ext = file.name.split(".").pop() || "jpg";
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
@@ -170,7 +157,11 @@ function ProductsPage() {
 
     if (uploadError) {
       console.error("Erro no upload:", uploadError);
-      toast.error("Erro ao fazer upload da imagem");
+      const msg =
+        uploadError.message === "The resource was not found"
+          ? 'Bucket "product-images" não encontrado. Execute a migration SQL no Supabase ou crie manualmente em Storage > New Bucket > product-images (público)'
+          : uploadError.message;
+      toast.error(msg);
       return null;
     }
 
