@@ -1,41 +1,10 @@
 -- =========================================
--- MIGRATION COMPLETA — NexusDeli
--- Ordem correta: empresas → clientes → produtos → pedidos → impressão
+-- MIGRATION IDEMPOTENTE — NexusDeli
+-- Pode rodar quantas vezes quiser (IF NOT EXISTS)
 -- =========================================
 
--- Drop existente (ordem reversa para evitar FK)
-drop view if exists public.v_print_queue;
-drop function if exists public.cancel_print_job;
-drop function if exists public.reprint_order;
-drop function if exists public.mark_print_job_as_error;
-drop function if exists public.mark_print_job_as_printed;
-drop function if exists public.start_print_job;
-drop function if exists public.log_print_job_created;
-drop function if exists public.create_print_job_after_order;
-drop trigger if exists trigger_log_print_job_created on public.print_jobs;
-drop trigger if exists trigger_create_print_job_after_order on public.orders;
-drop table if exists public.loyalty_transactions cascade;
-drop table if exists public.loyalty_points cascade;
-drop table if exists public.receipt_templates cascade;
-drop table if exists public.print_logs cascade;
-drop table if exists public.print_jobs cascade;
-drop table if exists public.printer_settings cascade;
-drop table if exists public.order_item_addons cascade;
-drop table if exists public.order_items cascade;
-drop table if exists public.orders cascade;
-drop table if exists public.customers cascade;
-drop table if exists public.product_addons cascade;
-drop table if exists public.products cascade;
-drop table if exists public.product_categories cascade;
-drop table if exists public.company_users cascade;
-drop table if exists public.companies cascade;
-drop sequence if exists public.order_number_seq;
-drop function if exists public.set_updated_at;
-drop function if exists public.apply_updated_at_trigger;
-drop function if exists public.user_belongs_to_company;
-
 -- =========================================
--- 0. COMPANIES (tenant)
+-- 0. COMPANIES
 -- =========================================
 create table if not exists public.companies (
   id uuid primary key default gen_random_uuid(),
@@ -55,7 +24,27 @@ create table if not exists public.companies (
 );
 
 -- =========================================
--- 1. PRODUCT CATEGORIES
+-- 1. COMPANY_USERS (for RLS)
+-- =========================================
+create table if not exists public.company_users (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text default 'admin',
+  created_at timestamptz default now()
+);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'company_users_company_id_user_id_key'
+  ) then
+    alter table public.company_users add unique (company_id, user_id);
+  end if;
+end $$;
+
+-- =========================================
+-- 2. PRODUCT CATEGORIES
 -- =========================================
 create table if not exists public.product_categories (
   id uuid primary key default gen_random_uuid(),
@@ -72,7 +61,7 @@ create table if not exists public.product_categories (
 );
 
 -- =========================================
--- 2. PRODUCTS
+-- 3. PRODUCTS
 -- =========================================
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
@@ -96,7 +85,7 @@ create table if not exists public.products (
 );
 
 -- =========================================
--- 3. PRODUCT ADDONS
+-- 4. PRODUCT ADDONS
 -- =========================================
 create table if not exists public.product_addons (
   id uuid primary key default gen_random_uuid(),
@@ -111,7 +100,7 @@ create table if not exists public.product_addons (
 );
 
 -- =========================================
--- 4. CUSTOMERS
+-- 5. CUSTOMERS
 -- =========================================
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
@@ -128,19 +117,27 @@ create table if not exists public.customers (
   last_order_at timestamptz,
   first_order_at timestamptz,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique(company_id, phone)
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'customers_company_id_phone_key'
+  ) then
+    alter table public.customers add unique (company_id, phone);
+  end if;
+end $$;
+
 -- =========================================
--- 5. ORDERS
+-- 6. ORDERS
 -- =========================================
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
   customer_id uuid references public.customers(id) on delete set null,
   order_number integer not null,
-  checkout_token text unique,
+  checkout_token text,
   status text default 'rascunho',
   print_status text default 'nao_impresso',
   source text default 'whatsapp',
@@ -167,24 +164,35 @@ create table if not exists public.orders (
   whatsapp_redirected_at timestamptz,
   printed_at timestamptz,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-
-  constraint orders_status_check check (
-    status in ('rascunho', 'aguardando_whatsapp', 'confirmado', 'preparo', 'saiu_entrega', 'entregue', 'cancelado')
-  ),
-  constraint orders_payment_method_check check (
-    payment_method in ('pix', 'dinheiro', 'cartao_credito', 'cartao_debito', 'vale_refeicao')
-  ),
-  constraint orders_payment_status_check check (
-    payment_status in ('pendente', 'pago', 'cancelado')
-  ),
-  constraint orders_print_status_check check (
-    print_status in ('nao_impresso', 'pendente', 'imprimindo', 'impresso', 'erro')
-  )
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'orders_status_check') then
+    alter table public.orders add constraint orders_status_check check (
+      status in ('rascunho','aguardando_whatsapp','confirmado','preparo','saiu_entrega','entregue','cancelado')
+    );
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'orders_payment_method_check') then
+    alter table public.orders add constraint orders_payment_method_check check (
+      payment_method in ('pix','dinheiro','cartao_credito','cartao_debito','vale_refeicao')
+    );
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'orders_payment_status_check') then
+    alter table public.orders add constraint orders_payment_status_check check (
+      payment_status in ('pendente','pago','cancelado')
+    );
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'orders_print_status_check') then
+    alter table public.orders add constraint orders_print_status_check check (
+      print_status in ('nao_impresso','pendente','imprimindo','impresso','erro')
+    );
+  end if;
+end $$;
+
 -- =========================================
--- 6. ORDER ITEMS
+-- 7. ORDER ITEMS
 -- =========================================
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
@@ -201,7 +209,7 @@ create table if not exists public.order_items (
 );
 
 -- =========================================
--- 7. ORDER ITEM ADDONS
+-- 8. ORDER ITEM ADDONS
 -- =========================================
 create table if not exists public.order_item_addons (
   id uuid primary key default gen_random_uuid(),
@@ -215,7 +223,7 @@ create table if not exists public.order_item_addons (
 );
 
 -- =========================================
--- 8. PRINTER SETTINGS
+-- 9. PRINTER SETTINGS
 -- =========================================
 create table if not exists public.printer_settings (
   id uuid primary key default gen_random_uuid(),
@@ -231,21 +239,24 @@ create table if not exists public.printer_settings (
   footer_text text,
   is_active boolean default true,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-
-  constraint printer_settings_paper_width_check check (
-    paper_width in ('58mm', '80mm')
-  ),
-  constraint printer_settings_print_mode_check check (
-    print_mode in ('browser', 'qztray', 'printnode', 'local_agent')
-  ),
-  constraint printer_settings_sector_check check (
-    printer_sector in ('cozinha', 'balcao', 'bar', 'delivery', 'caixa')
-  )
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'printer_settings_paper_width_check') then
+    alter table public.printer_settings add constraint printer_settings_paper_width_check check (paper_width in ('58mm','80mm'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'printer_settings_print_mode_check') then
+    alter table public.printer_settings add constraint printer_settings_print_mode_check check (print_mode in ('browser','qztray','printnode','local_agent'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'printer_settings_sector_check') then
+    alter table public.printer_settings add constraint printer_settings_sector_check check (printer_sector in ('cozinha','balcao','bar','delivery','caixa'));
+  end if;
+end $$;
+
 -- =========================================
--- 9. PRINT JOBS
+-- 10. PRINT JOBS
 -- =========================================
 create table if not exists public.print_jobs (
   id uuid primary key default gen_random_uuid(),
@@ -264,18 +275,21 @@ create table if not exists public.print_jobs (
   printed_at timestamptz,
   error_message text,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-
-  constraint print_jobs_status_check check (
-    status in ('pendente', 'imprimindo', 'impresso', 'erro', 'cancelado')
-  ),
-  constraint print_jobs_sector_check check (
-    printer_sector in ('cozinha', 'balcao', 'bar', 'delivery', 'caixa')
-  )
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'print_jobs_status_check') then
+    alter table public.print_jobs add constraint print_jobs_status_check check (status in ('pendente','imprimindo','impresso','erro','cancelado'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'print_jobs_sector_check') then
+    alter table public.print_jobs add constraint print_jobs_sector_check check (printer_sector in ('cozinha','balcao','bar','delivery','caixa'));
+  end if;
+end $$;
+
 -- =========================================
--- 10. PRINT LOGS
+-- 11. PRINT LOGS
 -- =========================================
 create table if not exists public.print_logs (
   id uuid primary key default gen_random_uuid(),
@@ -286,15 +300,20 @@ create table if not exists public.print_logs (
   payload jsonb default '{}'::jsonb,
   response jsonb default '{}'::jsonb,
   error_message text,
-  created_at timestamptz default now(),
-
-  constraint print_logs_action_check check (
-    action in ('criado', 'iniciado', 'enviado_para_impressora', 'impresso', 'erro', 'cancelado', 'reimpresso')
-  )
+  created_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'print_logs_action_check') then
+    alter table public.print_logs add constraint print_logs_action_check check (
+      action in ('criado','iniciado','enviado_para_impressora','impresso','erro','cancelado','reimpresso')
+    );
+  end if;
+end $$;
+
 -- =========================================
--- 11. RECEIPT TEMPLATES
+-- 12. RECEIPT TEMPLATES
 -- =========================================
 create table if not exists public.receipt_templates (
   id uuid primary key default gen_random_uuid(),
@@ -314,15 +333,18 @@ create table if not exists public.receipt_templates (
   is_default boolean default false,
   is_active boolean default true,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-
-  constraint receipt_templates_paper_width_check check (
-    paper_width in ('58mm', '80mm')
-  )
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'receipt_templates_paper_width_check') then
+    alter table public.receipt_templates add constraint receipt_templates_paper_width_check check (paper_width in ('58mm','80mm'));
+  end if;
+end $$;
+
 -- =========================================
--- 12. LOYALTY POINTS
+-- 13. LOYALTY POINTS
 -- =========================================
 create table if not exists public.loyalty_points (
   id uuid primary key default gen_random_uuid(),
@@ -334,15 +356,18 @@ create table if not exists public.loyalty_points (
   level text default 'bronze',
   expires_at timestamptz,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-
-  constraint loyalty_points_level_check check (
-    level in ('bronze', 'prata', 'ouro', 'vip')
-  )
+  updated_at timestamptz default now()
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'loyalty_points_level_check') then
+    alter table public.loyalty_points add constraint loyalty_points_level_check check (level in ('bronze','prata','ouro','vip'));
+  end if;
+end $$;
+
 -- =========================================
--- 13. LOYALTY TRANSACTIONS
+-- 14. LOYALTY TRANSACTIONS
 -- =========================================
 create table if not exists public.loyalty_transactions (
   id uuid primary key default gen_random_uuid(),
@@ -352,31 +377,15 @@ create table if not exists public.loyalty_transactions (
   type text not null,
   points integer not null,
   description text,
-  created_at timestamptz default now(),
-
-  constraint loyalty_transactions_type_check check (
-    type in ('earn', 'spend', 'expire', 'bonus')
-  )
+  created_at timestamptz default now()
 );
 
--- =========================================
--- 14. COMPANY_USERS (for RLS)
--- =========================================
-create table if not exists public.company_users (
-  id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references public.companies(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  role text default 'admin',
-  created_at timestamptz default now(),
-  unique(company_id, user_id)
-);
-
--- Auto-create company_user for owner
-insert into public.company_users (company_id, user_id, role)
-select id, owner_id, 'admin'
-from public.companies
-where owner_id is not null
-on conflict (company_id, user_id) do nothing;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'loyalty_transactions_type_check') then
+    alter table public.loyalty_transactions add constraint loyalty_transactions_type_check check (type in ('earn','spend','expire','bonus'));
+  end if;
+end $$;
 
 -- =========================================
 -- 15. INDEXES
@@ -415,24 +424,21 @@ begin
 end;
 $$ language plpgsql;
 
-create or replace function public.apply_updated_at_trigger(table_name text) returns void as $$
+do $$
+declare
+  tables text[] := array['companies','product_categories','products','customers','orders','printer_settings','print_jobs','receipt_templates','loyalty_points'];
+  t text;
 begin
-  execute format(
-    'drop trigger if exists set_%s_updated_at on public.%s; create trigger set_%s_updated_at before update on public.%s for each row execute function public.set_updated_at();',
-    table_name, table_name, table_name, table_name
-  );
+  foreach t in array tables
+  loop
+    execute format(
+      'drop trigger if exists set_%s_updated_at on public.%s;
+       create trigger set_%s_updated_at before update on public.%s for each row execute function public.set_updated_at();',
+      t, t, t, t
+    );
+  end loop;
 end;
-$$ language plpgsql;
-
-select public.apply_updated_at_trigger('companies');
-select public.apply_updated_at_trigger('product_categories');
-select public.apply_updated_at_trigger('products');
-select public.apply_updated_at_trigger('customers');
-select public.apply_updated_at_trigger('orders');
-select public.apply_updated_at_trigger('printer_settings');
-select public.apply_updated_at_trigger('print_jobs');
-select public.apply_updated_at_trigger('receipt_templates');
-select public.apply_updated_at_trigger('loyalty_points');
+$$;
 
 -- =========================================
 -- 17. AUTO PRINT JOB ON ORDER INSERT
@@ -443,42 +449,30 @@ declare
   selected_printer_id uuid;
   selected_copies integer;
 begin
-  select ps.id, ps.copies
-  into selected_printer_id, selected_copies
+  select ps.id, ps.copies into selected_printer_id, selected_copies
   from public.printer_settings ps
-  where ps.company_id = new.company_id
-    and ps.is_active = true
-    and ps.printer_sector = 'balcao'
-  order by ps.created_at asc
-  limit 1;
+  where ps.company_id = new.company_id and ps.is_active = true and ps.printer_sector = 'balcao'
+  order by ps.created_at asc limit 1;
 
-  insert into public.print_jobs (
-    company_id, order_id, printer_setting_id,
-    printer_sector, status, copies,
-    receipt_data
-  ) values (
-    new.company_id, new.id, selected_printer_id,
-    'balcao', 'pendente', coalesce(selected_copies, 1),
-    jsonb_build_object(
-      'order_id', new.id,
-      'order_number', new.order_number,
-      'total', new.total,
-      'payment_method', new.payment_method,
-      'delivery_address', new.delivery_address,
-      'notes', new.notes,
-      'created_at', new.created_at
-    )
-  );
+  insert into public.print_jobs (company_id, order_id, printer_setting_id, printer_sector, status, copies, receipt_data)
+  values (new.company_id, new.id, selected_printer_id, 'balcao', 'pendente', coalesce(selected_copies, 1),
+    jsonb_build_object('order_id', new.id, 'order_number', new.order_number, 'total', new.total));
 
   update public.orders set print_status = 'pendente' where id = new.id;
   return new;
 end;
 $$ language plpgsql;
 
-drop trigger if exists trigger_create_print_job_after_order on public.orders;
-create trigger trigger_create_print_job_after_order
-after insert on public.orders
-for each row execute function public.create_print_job_after_order();
+do $$
+begin
+  if exists (select 1 from pg_tables where tablename = 'orders') then
+    drop trigger if exists trigger_create_print_job_after_order on public.orders;
+    create trigger trigger_create_print_job_after_order
+    after insert on public.orders
+    for each row execute function public.create_print_job_after_order();
+  end if;
+end;
+$$;
 
 -- =========================================
 -- 18. LOG PRINT JOB CREATION
@@ -487,18 +481,22 @@ create or replace function public.log_print_job_created()
 returns trigger as $$
 begin
   insert into public.print_logs (company_id, print_job_id, action, status, payload)
-  values (
-    new.company_id, new.id, 'criado', new.status,
-    jsonb_build_object('order_id', new.order_id, 'printer_sector', new.printer_sector, 'copies', new.copies)
-  );
+  values (new.company_id, new.id, 'criado', new.status,
+    jsonb_build_object('order_id', new.order_id, 'printer_sector', new.printer_sector, 'copies', new.copies));
   return new;
 end;
 $$ language plpgsql;
 
-drop trigger if exists trigger_log_print_job_created on public.print_jobs;
-create trigger trigger_log_print_job_created
-after insert on public.print_jobs
-for each row execute function public.log_print_job_created();
+do $$
+begin
+  if exists (select 1 from pg_tables where tablename = 'print_jobs') then
+    drop trigger if exists trigger_log_print_job_created on public.print_jobs;
+    create trigger trigger_log_print_job_created
+    after insert on public.print_jobs
+    for each row execute function public.log_print_job_created();
+  end if;
+end;
+$$;
 
 -- =========================================
 -- 19. PRINT FUNCTIONS
@@ -512,13 +510,10 @@ begin
   set status = 'imprimindo', printing_started_at = now(), retry_count = retry_count + 1, last_retry_at = now(), error_message = null
   where id = p_print_job_id and status in ('pendente', 'erro')
   returning * into job;
-
   if job.id is null then raise exception 'Print job nao encontrado ou ja em processamento.'; end if;
-
   update public.orders set print_status = 'imprimindo' where id = job.order_id;
   insert into public.print_logs (company_id, print_job_id, action, status, payload)
   values (job.company_id, job.id, 'iniciado', 'imprimindo', jsonb_build_object('retry_count', job.retry_count));
-
   return job;
 end;
 $$ language plpgsql;
@@ -528,17 +523,12 @@ returns public.print_jobs as $$
 declare
   job public.print_jobs;
 begin
-  update public.print_jobs
-  set status = 'impresso', printed_at = now(), error_message = null
-  where id = p_print_job_id
-  returning * into job;
-
+  update public.print_jobs set status = 'impresso', printed_at = now(), error_message = null
+  where id = p_print_job_id returning * into job;
   if job.id is null then raise exception 'Print job nao encontrado.'; end if;
-
   update public.orders set print_status = 'impresso', printed_at = now() where id = job.order_id;
   insert into public.print_logs (company_id, print_job_id, action, status)
   values (job.company_id, job.id, 'impresso', 'impresso');
-
   return job;
 end;
 $$ language plpgsql;
@@ -548,17 +538,12 @@ returns public.print_jobs as $$
 declare
   job public.print_jobs;
 begin
-  update public.print_jobs
-  set status = 'erro', error_message = p_error_message, last_retry_at = now()
-  where id = p_print_job_id
-  returning * into job;
-
+  update public.print_jobs set status = 'erro', error_message = p_error_message, last_retry_at = now()
+  where id = p_print_job_id returning * into job;
   if job.id is null then raise exception 'Print job nao encontrado.'; end if;
-
   update public.orders set print_status = 'erro' where id = job.order_id;
   insert into public.print_logs (company_id, print_job_id, action, status, error_message)
   values (job.company_id, job.id, 'erro', 'erro', p_error_message);
-
   return job;
 end;
 $$ language plpgsql;
@@ -571,15 +556,12 @@ declare
 begin
   select * into original_job from public.print_jobs where order_id = p_order_id order by created_at desc limit 1;
   if original_job.id is null then raise exception 'Nenhum print job encontrado para este pedido.'; end if;
-
   insert into public.print_jobs (company_id, order_id, printer_setting_id, printer_sector, status, copies, receipt_text, receipt_html, receipt_data)
   values (original_job.company_id, original_job.order_id, original_job.printer_setting_id, original_job.printer_sector, 'pendente', original_job.copies, original_job.receipt_text, original_job.receipt_html, original_job.receipt_data)
   returning * into new_job;
-
   update public.orders set print_status = 'pendente' where id = p_order_id;
   insert into public.print_logs (company_id, print_job_id, action, status, payload)
   values (new_job.company_id, new_job.id, 'reimpresso', 'pendente', jsonb_build_object('original_print_job_id', original_job.id));
-
   return new_job;
 end;
 $$ language plpgsql;
@@ -599,7 +581,8 @@ $$ language plpgsql;
 -- =========================================
 -- 20. VIEW — PRINT QUEUE
 -- =========================================
-create or replace view public.v_print_queue as
+drop view if exists public.v_print_queue;
+create view public.v_print_queue as
 select
   pj.id as print_job_id, pj.company_id, pj.order_id, pj.status as print_status,
   pj.printer_sector, pj.copies, pj.retry_count, pj.error_message, pj.created_at as print_created_at,
@@ -616,6 +599,7 @@ left join public.printer_settings ps on ps.id = pj.printer_setting_id;
 -- 21. RLS POLICIES
 -- =========================================
 alter table public.companies enable row level security;
+alter table public.company_users enable row level security;
 alter table public.product_categories enable row level security;
 alter table public.products enable row level security;
 alter table public.product_addons enable row level security;
@@ -629,33 +613,28 @@ alter table public.print_logs enable row level security;
 alter table public.receipt_templates enable row level security;
 alter table public.loyalty_points enable row level security;
 alter table public.loyalty_transactions enable row level security;
-alter table public.company_users enable row level security;
 
--- Policy helper: user can access own company data
 create or replace function public.user_belongs_to_company(company_id uuid)
-returns boolean as $$
+returns boolean stable as $$
 begin
   return exists (
     select 1 from public.company_users cu
-    where cu.company_id = user_belongs_to_company.company_id
-      and cu.user_id = auth.uid()
+    where cu.company_id = user_belongs_to_company.company_id and cu.user_id = auth.uid()
   );
 end;
-$$ language plpgsql stable;
+$$ language plpgsql;
 
--- Company policies (owner only)
 drop policy if exists "Owner can manage company" on public.companies;
 create policy "Owner can manage company" on public.companies
   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
--- Generic policies for all tenant tables
 do $$
 declare
   tables text[] := array[
-    'product_categories', 'products', 'product_addons',
-    'customers', 'orders', 'order_items', 'order_item_addons',
-    'printer_settings', 'print_jobs', 'print_logs', 'receipt_templates',
-    'loyalty_points', 'loyalty_transactions'
+    'product_categories','products','product_addons',
+    'customers','orders','order_items','order_item_addons',
+    'printer_settings','print_jobs','print_logs','receipt_templates',
+    'loyalty_points','loyalty_transactions'
   ];
   t text;
 begin
@@ -664,32 +643,23 @@ begin
     execute format(
       'drop policy if exists "Users can view %s" on public.%s;
        create policy "Users can view %s" on public.%s for select
-         using (public.user_belongs_to_company(company_id));',
-      t, t, t, t
-    );
+         using (public.user_belongs_to_company(company_id));', t, t, t, t);
     execute format(
       'drop policy if exists "Users can insert %s" on public.%s;
        create policy "Users can insert %s" on public.%s for insert
-         with check (public.user_belongs_to_company(company_id));',
-      t, t, t, t
-    );
+         with check (public.user_belongs_to_company(company_id));', t, t, t, t);
     execute format(
       'drop policy if exists "Users can update %s" on public.%s;
        create policy "Users can update %s" on public.%s for update
-         using (public.user_belongs_to_company(company_id));',
-      t, t, t, t
-    );
+         using (public.user_belongs_to_company(company_id));', t, t, t, t);
     execute format(
       'drop policy if exists "Users can delete %s" on public.%s;
        create policy "Users can delete %s" on public.%s for delete
-         using (public.user_belongs_to_company(company_id));',
-      t, t, t, t
-    );
+         using (public.user_belongs_to_company(company_id));', t, t, t, t);
   end loop;
 end;
 $$;
 
--- Company_users policy
 drop policy if exists "Users can view their company users" on public.company_users;
 create policy "Users can view their company users" on public.company_users
   for select using (user_id = auth.uid());
@@ -701,6 +671,6 @@ create policy "Users can manage their company users" on public.company_users
   );
 
 -- =========================================
--- 22. SEQUENCE FOR ORDER NUMBERS
+-- 22. SEQUENCE
 -- =========================================
 create sequence if not exists public.order_number_seq;
