@@ -9,6 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as CardapioRouteImport } from './routes/cardapio'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as FilaImpressaoRouteImport } from './routes/fila-impressao'
+import { Route as PedidosRouteImport } from './routes/pedidos'
+import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as PromocoesRouteImport } from './routes/promocoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
@@ -17,6 +22,31 @@ import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AgentesIaRouteImport } from './routes/agentes-ia'
 import { Route as IndexRouteImport } from './routes/index'
 
+const CardapioRoute = CardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilaImpressaoRoute = FilaImpressaoRouteImport.update({
+  id: '/fila-impressao',
+  path: '/fila-impressao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedidosRoute = PedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosRoute = ProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -58,7 +88,12 @@ export interface FileRoutesByFullPath {
   '/agentes-ia': typeof AgentesIaRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
+  '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/fila-impressao': typeof FilaImpressaoRoute
+  '/pedidos': typeof PedidosRoute
+  '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -67,7 +102,12 @@ export interface FileRoutesByTo {
   '/agentes-ia': typeof AgentesIaRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
+  '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/fila-impressao': typeof FilaImpressaoRoute
+  '/pedidos': typeof PedidosRoute
+  '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -77,7 +117,12 @@ export interface FileRoutesById {
   '/agentes-ia': typeof AgentesIaRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
+  '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/fila-impressao': typeof FilaImpressaoRoute
+  '/pedidos': typeof PedidosRoute
+  '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -88,7 +133,12 @@ export interface FileRouteTypes {
     | '/agentes-ia'
     | '/automacoes'
     | '/campanhas'
+    | '/cardapio'
     | '/clientes'
+    | '/configuracoes'
+    | '/fila-impressao'
+    | '/pedidos'
+    | '/produtos'
     | '/promocoes'
     | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
@@ -97,7 +147,12 @@ export interface FileRouteTypes {
     | '/agentes-ia'
     | '/automacoes'
     | '/campanhas'
+    | '/cardapio'
     | '/clientes'
+    | '/configuracoes'
+    | '/fila-impressao'
+    | '/pedidos'
+    | '/produtos'
     | '/promocoes'
     | '/whatsapp'
   id:
@@ -106,7 +161,12 @@ export interface FileRouteTypes {
     | '/agentes-ia'
     | '/automacoes'
     | '/campanhas'
+    | '/cardapio'
     | '/clientes'
+    | '/configuracoes'
+    | '/fila-impressao'
+    | '/pedidos'
+    | '/produtos'
     | '/promocoes'
     | '/whatsapp'
   fileRoutesById: FileRoutesById
@@ -116,13 +176,53 @@ export interface RootRouteChildren {
   AgentesIaRoute: typeof AgentesIaRoute
   AutomacoesRoute: typeof AutomacoesRoute
   CampanhasRoute: typeof CampanhasRoute
+  CardapioRoute: typeof CardapioRoute
   ClientesRoute: typeof ClientesRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  FilaImpressaoRoute: typeof FilaImpressaoRoute
+  PedidosRoute: typeof PedidosRoute
+  ProdutosRoute: typeof ProdutosRoute
   PromocoesRoute: typeof PromocoesRoute
   WhatsappRoute: typeof WhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/cardapio': {
+      id: '/cardapio'
+      path: '/cardapio'
+      fullPath: '/cardapio'
+      preLoaderRoute: typeof CardapioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fila-impressao': {
+      id: '/fila-impressao'
+      path: '/fila-impressao'
+      fullPath: '/fila-impressao'
+      preLoaderRoute: typeof FilaImpressaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedidos': {
+      id: '/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof PedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos': {
+      id: '/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/whatsapp': {
       id: '/whatsapp'
       path: '/whatsapp'
@@ -180,7 +280,12 @@ const rootRouteChildren: RootRouteChildren = {
   AgentesIaRoute: AgentesIaRoute,
   AutomacoesRoute: AutomacoesRoute,
   CampanhasRoute: CampanhasRoute,
+  CardapioRoute: CardapioRoute,
   ClientesRoute: ClientesRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  FilaImpressaoRoute: FilaImpressaoRoute,
+  PedidosRoute: PedidosRoute,
+  ProdutosRoute: ProdutosRoute,
   PromocoesRoute: PromocoesRoute,
   WhatsappRoute: WhatsappRoute,
 }
