@@ -3,6 +3,37 @@
 -- Ordem correta: empresas → clientes → produtos → pedidos → impressão
 -- =========================================
 
+-- Drop existente (ordem reversa para evitar FK)
+drop view if exists public.v_print_queue;
+drop function if exists public.cancel_print_job;
+drop function if exists public.reprint_order;
+drop function if exists public.mark_print_job_as_error;
+drop function if exists public.mark_print_job_as_printed;
+drop function if exists public.start_print_job;
+drop function if exists public.log_print_job_created;
+drop function if exists public.create_print_job_after_order;
+drop trigger if exists trigger_log_print_job_created on public.print_jobs;
+drop trigger if exists trigger_create_print_job_after_order on public.orders;
+drop table if exists public.loyalty_transactions cascade;
+drop table if exists public.loyalty_points cascade;
+drop table if exists public.receipt_templates cascade;
+drop table if exists public.print_logs cascade;
+drop table if exists public.print_jobs cascade;
+drop table if exists public.printer_settings cascade;
+drop table if exists public.order_item_addons cascade;
+drop table if exists public.order_items cascade;
+drop table if exists public.orders cascade;
+drop table if exists public.customers cascade;
+drop table if exists public.product_addons cascade;
+drop table if exists public.products cascade;
+drop table if exists public.product_categories cascade;
+drop table if exists public.company_users cascade;
+drop table if exists public.companies cascade;
+drop sequence if exists public.order_number_seq;
+drop function if exists public.set_updated_at;
+drop function if exists public.apply_updated_at_trigger;
+drop function if exists public.user_belongs_to_company;
+
 -- =========================================
 -- 0. COMPANIES (tenant)
 -- =========================================
