@@ -753,7 +753,32 @@ with check (
   );
 
 -- =========================================
--- 19. STORAGE BUCKET PARA IMAGENS DE PRODUTOS
+-- 19. DEFAULT COMPANY (MVP — sem auth)
+-- =========================================
+
+insert into public.companies (id, name, slug)
+values ('11111111-1111-1111-1111-111111111111', 'NexusDeli', 'nexusdeli')
+on conflict (id) do nothing;
+
+-- Desabilita RLS em todas as tabelas (MVP sem autenticação)
+alter table if exists public.companies disable row level security;
+alter table if exists public.company_users disable row level security;
+alter table if exists public.product_categories disable row level security;
+alter table if exists public.products disable row level security;
+alter table if exists public.product_addons disable row level security;
+alter table if exists public.customers disable row level security;
+alter table if exists public.orders disable row level security;
+alter table if exists public.order_items disable row level security;
+alter table if exists public.order_item_addons disable row level security;
+alter table if exists public.printer_settings disable row level security;
+alter table if exists public.print_jobs disable row level security;
+alter table if exists public.print_logs disable row level security;
+alter table if exists public.receipt_templates disable row level security;
+alter table if exists public.loyalty_points disable row level security;
+alter table if exists public.loyalty_transactions disable row level security;
+
+-- =========================================
+-- 20. STORAGE BUCKET PARA IMAGENS DE PRODUTOS
 -- =========================================
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -784,7 +809,6 @@ begin
     on storage.objects for insert
     with check (
       bucket_id = 'product-images'
-      and auth.role() = 'authenticated'
     );
   end if;
 
@@ -795,7 +819,6 @@ begin
     on storage.objects for update
     using (
       bucket_id = 'product-images'
-      and auth.role() = 'authenticated'
     );
   end if;
 
@@ -806,7 +829,6 @@ begin
     on storage.objects for delete
     using (
       bucket_id = 'product-images'
-      and auth.role() = 'authenticated'
     );
   end if;
 end $$;

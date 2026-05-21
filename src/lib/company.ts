@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
 
-export async function getCompanyId(): Promise<string> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return "00000000-0000-0000-0000-000000000000";
+const DEFAULT_COMPANY_ID = "11111111-1111-1111-1111-111111111111";
 
+export async function getCompanyId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
     const { data } = await supabase
       .from("companies")
       .select("id")
@@ -19,15 +20,8 @@ export async function getCompanyId(): Promise<string> {
       .select("id")
       .single();
 
-    if (newCompany?.id) {
-      await supabase.from("company_users").upsert(
-        { company_id: newCompany.id, user_id: user.id, role: "admin" },
-        { onConflict: "company_id,user_id" }
-      );
-    }
-
-    return newCompany?.id || "00000000-0000-0000-0000-000000000000";
-  } catch {
-    return "00000000-0000-0000-0000-000000000000";
+    if (newCompany?.id) return newCompany.id;
   }
+
+  return DEFAULT_COMPANY_ID;
 }

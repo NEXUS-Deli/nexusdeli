@@ -213,11 +213,6 @@ function ProductsPage() {
     try {
       const companyId = await getCompanyId();
 
-      if (companyId === "00000000-0000-0000-0000-000000000000") {
-        toast.error("Usuário não autenticado — faça login novamente");
-        return;
-      }
-
       // Upload image if a new file was selected
       let imageUrl = formImageUrl;
       if (formImageFile) {
