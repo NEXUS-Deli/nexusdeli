@@ -761,21 +761,73 @@ values ('11111111-1111-1111-1111-111111111111', 'NexusDeli', 'nexusdeli')
 on conflict (id) do nothing;
 
 -- Desabilita RLS em todas as tabelas (MVP sem autenticação)
-alter table if exists public.companies disable row level security;
-alter table if exists public.company_users disable row level security;
-alter table if exists public.product_categories disable row level security;
-alter table if exists public.products disable row level security;
-alter table if exists public.product_addons disable row level security;
-alter table if exists public.customers disable row level security;
-alter table if exists public.orders disable row level security;
-alter table if exists public.order_items disable row level security;
-alter table if exists public.order_item_addons disable row level security;
-alter table if exists public.printer_settings disable row level security;
-alter table if exists public.print_jobs disable row level security;
-alter table if exists public.print_logs disable row level security;
-alter table if exists public.receipt_templates disable row level security;
-alter table if exists public.loyalty_points disable row level security;
-alter table if exists public.loyalty_transactions disable row level security;
+alter table public.companies disable row level security;
+alter table public.company_users disable row level security;
+alter table public.product_categories disable row level security;
+alter table public.products disable row level security;
+alter table public.product_addons disable row level security;
+alter table public.customers disable row level security;
+alter table public.orders disable row level security;
+alter table public.order_items disable row level security;
+alter table public.order_item_addons disable row level security;
+alter table public.printer_settings disable row level security;
+alter table public.print_jobs disable row level security;
+alter table public.print_logs disable row level security;
+alter table public.receipt_templates disable row level security;
+alter table public.loyalty_points disable row level security;
+alter table public.loyalty_transactions disable row level security;
+
+-- Drop policies legadas
+do $$
+declare
+  rec record;
+begin
+  for rec in select policyname from pg_policies where schemaname = 'public'
+  loop
+    execute format('drop policy if exists %I on public.%I', rec.policyname, (
+      select tablename from pg_tables where schemaname = 'public' and tablename in (
+        'companies','company_users','product_categories','products','product_addons',
+        'customers','orders','order_items','order_item_addons',
+        'printer_settings','print_jobs','print_logs','receipt_templates',
+        'loyalty_points','loyalty_transactions'
+      )
+    ));
+  end loop;
+end $$;
+
+-- Função SECURITY DEFINER para salvar produto (bypass RLS)
+create or replace function public.save_product(payload jsonb)
+returns jsonb
+security definer
+as $$
+declare
+  result jsonb;
+begin
+  insert into public.products (
+    company_id, name, description, category_id,
+    price, cost_price, preparation_time, stock_quantity,
+    is_active, is_featured, is_promotional, promotional_price, image_url
+  )
+  values (
+    (payload->>'company_id')::uuid,
+    payload->>'name',
+    payload->>'description',
+    (payload->>'category_id')::uuid,
+    (payload->>'price')::numeric,
+    (payload->>'cost_price')::numeric,
+    (payload->>'preparation_time')::int,
+    (payload->>'stock_quantity')::int,
+    coalesce((payload->>'is_active')::boolean, true),
+    coalesce((payload->>'is_featured')::boolean, false),
+    coalesce((payload->>'is_promotional')::boolean, false),
+    (payload->>'promotional_price')::numeric,
+    payload->>'image_url'
+  )
+  returning row_to_json(products.*)::jsonb into result;
+
+  return result;
+end;
+$$ language plpgsql;
 
 -- =========================================
 -- 20. STORAGE BUCKET PARA IMAGENS DE PRODUTOS

@@ -250,7 +250,16 @@ function ProductsPage() {
         toast.success("Produto atualizado");
       } else {
         const { error } = await supabase.from("products").insert(payload);
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes("row-level security") || error.code === "42501") {
+            const { error: rpcError } = await supabase.rpc("save_product", {
+              payload: JSON.parse(JSON.stringify(payload)),
+            });
+            if (rpcError) throw rpcError;
+          } else {
+            throw error;
+          }
+        }
         toast.success("Produto criado");
       }
 
