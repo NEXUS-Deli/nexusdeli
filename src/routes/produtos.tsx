@@ -77,6 +77,8 @@ function ProductsPage() {
   const [formPromoPrice, setFormPromoPrice] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
+  const [formImageFile, setFormImageFile] = useState<File | null>(null);
+  const [formImageUploading, setFormImageUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -122,6 +124,7 @@ function ProductsPage() {
     setFormPromoPrice("");
     setFormImageUrl("");
     setFormImagePreview(null);
+    setFormImageFile(null);
     setEditingProduct(null);
   };
 
@@ -138,11 +141,12 @@ function ProductsPage() {
     setFormPromoPrice(product.promotional_price?.toString() || "");
     setFormImageUrl(product.image_url || "");
     setFormImagePreview(product.image_url || null);
+    setFormImageFile(null);
     setEditingProduct(product);
     setShowForm(true);
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImageToStorage = async (file: File): Promise<string | null> => {
     const bucket = "product-images";
     const ext = file.name.split(".").pop() || "jpg";
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -159,17 +163,16 @@ function ProductsPage() {
       console.error("Erro no upload:", uploadError);
       const msg =
         uploadError.message === "The resource was not found"
-          ? 'Bucket "product-images" não encontrado. Execute a migration SQL no Supabase ou crie manualmente em Storage > New Bucket > product-images (público)'
+          ? 'Bucket "product-images" não existe. Crie no Supabase: Storage > New Bucket > product-images (público)'
           : uploadError.message;
-      toast.error(msg);
-      return null;
+      throw new Error(msg);
     }
 
     const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(fileName);
     return publicUrl.publicUrl;
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -183,25 +186,21 @@ function ProductsPage() {
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setFormImagePreview(previewUrl);
+    setFormImageFile(file);
+    setFormImagePreview(URL.createObjectURL(file));
+    setFormImageUrl("");
+  };
 
-    setUploadingImage(true);
-    try {
-      const url = await uploadImage(file);
-      if (url) {
-        setFormImageUrl(url);
-        toast.success("Imagem enviada!");
-      } else {
-        setFormImagePreview(null);
-      }
-    } finally {
-      setUploadingImage(false);
-    }
+  const removeImage = () => {
+    setFormImageUrl("");
+    setFormImagePreview(null);
+    setFormImageFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formName.trim() || !formPrice) {
       toast.error("Nome e preço são obrigatórios");
       return;
@@ -212,8 +211,20 @@ function ProductsPage() {
       const companyId = await getCompanyId();
 
       if (companyId === "00000000-0000-0000-0000-000000000000") {
-        toast.error("Usuário não autenticado");
+        toast.error("Usuário não autenticado — faça login novamente");
         return;
+      }
+
+      // Upload image if a new file was selected
+      let imageUrl = formImageUrl;
+      if (formImageFile) {
+        setFormImageUploading(true);
+        try {
+          const url = await uploadImageToStorage(formImageFile);
+          if (url) imageUrl = url;
+        } finally {
+          setFormImageUploading(false);
+        }
       }
 
       const payload = {
@@ -229,7 +240,7 @@ function ProductsPage() {
         is_featured: formFeatured,
         is_promotional: formPromotional,
         promotional_price: formPromotional ? (Number(formPromoPrice) || null) : null,
-        image_url: formImageUrl || null,
+        image_url: imageUrl || null,
       };
 
       if (editingProduct) {
@@ -553,24 +564,15 @@ function ProductsPage() {
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          disabled={uploadingImage}
-                          className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors cursor-pointer"
                         >
-                          {uploadingImage ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Upload className="h-3.5 w-3.5" />
-                          )}
-                          {uploadingImage ? "Enviando..." : "Escolher imagem"}
+                          <Upload className="h-3.5 w-3.5" />
+                          {formImageUrl ? "Trocar imagem" : "Escolher imagem"}
                         </button>
-                        {formImageUrl && (
+                        {(formImageUrl || formImagePreview) && (
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormImageUrl("");
-                              setFormImagePreview(null);
-                              if (fileInputRef.current) fileInputRef.current.value = "";
-                            }}
+                            onClick={removeImage}
                             className="ml-2 text-xs text-destructive hover:underline cursor-pointer"
                           >
                             Remover
@@ -625,11 +627,21 @@ function ProductsPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={saving || uploadingImage}
+                      disabled={saving || formImageUploading}
                       className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-glow hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
                     >
-                      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                      {editingProduct ? "Atualizar" : "Salvar"}
+                      {saving ? (
+                        <>
+                          {formImageUploading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Save className="h-3 w-3" />
+                          )}
+                          {formImageUploading ? "Enviando imagem..." : editingProduct ? "Atualizar" : "Salvar"}
+                        </>
+                      ) : (
+                        <><Save className="h-3 w-3" />{editingProduct ? "Atualizar" : "Salvar"}</>
+                      )}
                     </button>
                   </div>
                 </div>
