@@ -19,6 +19,13 @@ export async function getCompanyId(): Promise<string> {
       .select("id")
       .single();
 
+    if (newCompany?.id) {
+      await supabase.from("company_users").upsert(
+        { company_id: newCompany.id, user_id: user.id, role: "admin" },
+        { onConflict: "company_id,user_id" }
+      );
+    }
+
     return newCompany?.id || "00000000-0000-0000-0000-000000000000";
   } catch {
     return "00000000-0000-0000-0000-000000000000";

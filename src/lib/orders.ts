@@ -448,28 +448,29 @@ export async function markPrintJobAsPrinting(jobId: string) {
 }
 
 export async function markPrintJobError(jobId: string, errorMessage: string) {
+  const { data: job } = await supabase
+    .from("print_jobs")
+    .select("company_id, retry_count")
+    .eq("id", jobId)
+    .single();
+
+  if (!job) return;
+
   await supabase
     .from("print_jobs")
     .update({
       status: "erro",
       error_message: errorMessage,
-      retry_count: supabase.rpc("increment"),
-    } as any)
+      retry_count: (job.retry_count || 0) + 1,
+      last_retry_at: new Date().toISOString(),
+    })
     .eq("id", jobId);
 
-  const { data: job } = await supabase
-    .from("print_jobs")
-    .select("company_id")
-    .eq("id", jobId)
-    .single();
-
-  if (job) {
-    await supabase.from("print_logs").insert({
-      company_id: job.company_id,
-      print_job_id: jobId,
-      action: "erro",
-      status: "erro",
-      error_message: errorMessage,
-    });
-  }
+  await supabase.from("print_logs").insert({
+    company_id: job.company_id,
+    print_job_id: jobId,
+    action: "erro",
+    status: "erro",
+    error_message: errorMessage,
+  });
 }
