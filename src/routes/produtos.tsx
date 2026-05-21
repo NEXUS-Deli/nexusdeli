@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
@@ -19,6 +19,8 @@ import {
   ToggleLeft,
   ToggleRight,
   ChefHat,
+  Upload,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -60,6 +62,7 @@ function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -73,6 +76,9 @@ function ProductsPage() {
   const [formPromotional, setFormPromotional] = useState(false);
   const [formPromoPrice, setFormPromoPrice] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
+  const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -115,6 +121,7 @@ function ProductsPage() {
     setFormPromotional(false);
     setFormPromoPrice("");
     setFormImageUrl("");
+    setFormImagePreview(null);
     setEditingProduct(null);
   };
 
@@ -130,20 +137,94 @@ function ProductsPage() {
     setFormPromotional(product.is_promotional);
     setFormPromoPrice(product.promotional_price?.toString() || "");
     setFormImageUrl(product.image_url || "");
+    setFormImagePreview(product.image_url || null);
     setEditingProduct(product);
     setShowForm(true);
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const bucket = "product-images";
+
+    const { data: bucketExists } = await supabase.storage.getBucket(bucket);
+    if (!bucketExists) {
+      const { error: createError } = await supabase.storage.createBucket(bucket, {
+        public: true,
+      });
+      if (createError) {
+        console.error("Erro ao criar bucket:", createError);
+        toast.error("Erro ao criar bucket de imagens. Crie manualmente no Supabase: Storage > New Bucket > product-images (público)");
+        return null;
+      }
+    }
+
+    const ext = file.name.split(".").pop() || "jpg";
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      console.error("Erro no upload:", uploadError);
+      toast.error("Erro ao fazer upload da imagem");
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return publicUrl.publicUrl;
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem válida");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 2MB");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setFormImagePreview(previewUrl);
+
+    setUploadingImage(true);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        setFormImageUrl(url);
+        toast.success("Imagem enviada!");
+      } else {
+        setFormImagePreview(null);
+      }
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formPrice) {
-      toast.error("Nome e precos sao obrigatorios");
+      toast.error("Nome e preço são obrigatórios");
       return;
     }
 
     setSaving(true);
     try {
       const companyId = await getCompanyId();
+
+      if (companyId === "00000000-0000-0000-0000-000000000000") {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
       const payload = {
         company_id: companyId,
         name: formName.trim(),
@@ -153,6 +234,7 @@ function ProductsPage() {
         cost_price: Number(formCostPrice) || 0,
         preparation_time: Number(formPrepTime) || 0,
         stock_quantity: Number(formStock) || 0,
+        is_active: true,
         is_featured: formFeatured,
         is_promotional: formPromotional,
         promotional_price: formPromotional ? (Number(formPromoPrice) || null) : null,
@@ -176,8 +258,9 @@ function ProductsPage() {
       resetForm();
       loadData();
     } catch (err: any) {
-      toast.error("Erro ao salvar produto");
-      console.error(err);
+      console.error("Erro detalhado:", err);
+      const msg = err?.message || err?.details || "Erro ao salvar produto";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -189,7 +272,7 @@ function ProductsPage() {
       const { error } = await supabase.from("products").delete().eq("id", id);
       if (error) throw error;
       setProducts(products.filter((p) => p.id !== id));
-      toast.success("Produto excluido");
+      toast.success("Produto excluído");
     } catch {
       toast.error("Erro ao excluir");
     }
@@ -223,11 +306,10 @@ function ProductsPage() {
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar />
         <main className="flex-1 px-5 lg:px-8 py-6 space-y-6">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
-              <p className="text-sm text-muted-foreground">Gerencie seu cardapio</p>
+              <p className="text-sm text-muted-foreground">Gerencie seu cardápio</p>
             </div>
             <button
               onClick={() => { resetForm(); setShowForm(true); }}
@@ -237,7 +319,6 @@ function ProductsPage() {
             </button>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 rounded-xl border border-border bg-background/50 px-3 py-2 text-sm text-muted-foreground">
               <Search className="h-4 w-4" />
@@ -261,7 +342,6 @@ function ProductsPage() {
             </select>
           </div>
 
-          {/* Products Grid */}
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -282,15 +362,15 @@ function ProductsPage() {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-surface border border-border grid place-items-center overflow-hidden">
+                        <div className="h-12 w-12 rounded-xl bg-surface border border-border grid place-items-center overflow-hidden shrink-0">
                           {product.image_url ? (
                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
                             <Package className="h-5 w-5 text-muted-foreground" />
                           )}
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-sm">{product.name}</h3>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{product.name}</h3>
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
                             {product.product_categories && (
                               <span className="flex items-center gap-1">
@@ -305,7 +385,7 @@ function ProductsPage() {
                       </div>
                       <button
                         onClick={() => handleToggleActive(product)}
-                        className="cursor-pointer"
+                        className="cursor-pointer shrink-0"
                       >
                         {product.is_active ? (
                           <ToggleRight className="h-5 w-5 text-success" />
@@ -331,7 +411,6 @@ function ProductsPage() {
                       </div>
                     </div>
 
-                    {/* Badges */}
                     <div className="flex items-center gap-1.5 mt-2">
                       {product.is_featured && (
                         <span className="text-[9px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md border border-primary/20 flex items-center gap-0.5">
@@ -404,7 +483,7 @@ function ProductsPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Descricao</label>
+                    <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
                     <textarea
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
@@ -427,7 +506,7 @@ function ProductsPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Preco de venda *</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Preço de venda *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -441,7 +520,7 @@ function ProductsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Preco de custo</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Preço de custo</label>
                       <input
                         type="number"
                         step="0.01"
@@ -461,15 +540,54 @@ function ProductsPage() {
                     </div>
                   </div>
 
+                  {/* Image upload */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">URL da imagem</label>
-                    <input
-                      type="url"
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary/60"
-                    />
+                    <label className="text-xs font-semibold text-muted-foreground">Imagem do produto</label>
+                    <div className="flex items-center gap-3">
+                      <div className="h-16 w-16 rounded-xl bg-background border border-border grid place-items-center overflow-hidden shrink-0">
+                        {formImagePreview ? (
+                          <img src={formImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={fileInputRef}
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingImage}
+                          className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {uploadingImage ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Upload className="h-3.5 w-3.5" />
+                          )}
+                          {uploadingImage ? "Enviando..." : "Escolher imagem"}
+                        </button>
+                        {formImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormImageUrl("");
+                              setFormImagePreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="ml-2 text-xs text-destructive hover:underline cursor-pointer"
+                          >
+                            Remover
+                          </button>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-1">Máximo 2MB · PNG, JPG, WEBP</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-4">
@@ -495,7 +613,7 @@ function ProductsPage() {
 
                   {formPromotional && (
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Preco promocional</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Preço promocional</label>
                       <input
                         type="number"
                         step="0.01"
@@ -516,7 +634,7 @@ function ProductsPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={saving}
+                      disabled={saving || uploadingImage}
                       className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-glow hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
                     >
                       {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}

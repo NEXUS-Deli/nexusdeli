@@ -744,10 +744,24 @@ using (
   )
 )
 with check (
-  exists (
-    select 1
-    from public.company_users cu
-    where cu.company_id = receipt_templates.company_id
-      and cu.user_id = auth.uid()
-  )
-);
+    exists (
+      select 1
+      from public.company_users cu
+      where cu.company_id = receipt_templates.company_id
+        and cu.user_id = auth.uid()
+    )
+  );
+
+-- =========================================
+-- 19. STORAGE BUCKET PARA IMAGENS DE PRODUTOS
+-- =========================================
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-images',
+  'product-images',
+  true,
+  2097152,
+  array['image/png', 'image/jpeg', 'image/webp']
+)
+on conflict (id) do nothing;
