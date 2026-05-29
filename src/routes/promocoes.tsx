@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCompanyId } from "@/lib/company";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
@@ -20,15 +21,6 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/promocoes")({
   component: PromocoesPage,
 });
-
-const getDeliveryId = async (): Promise<string> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || "00000000-0000-0000-0000-000000000000";
-  } catch {
-    return "00000000-0000-0000-0000-000000000000";
-  }
-};
 
 function PromocoesPage() {
   const [activeSubTab, setActiveSubTab] = useState<"cupons" | "templates" | "gatilhos">("cupons");
@@ -55,12 +47,12 @@ function PromocoesPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       
       const [resCoupons, resTemplates, resTriggers] = await Promise.all([
-        supabase.from("coupons").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
-        supabase.from("message_templates").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
-        supabase.from("triggers").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+        supabase.from("coupons").select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
+        supabase.from("message_templates").select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
+        supabase.from("triggers").select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
       ]);
 
       if (resCoupons.data) setCoupons(resCoupons.data);
@@ -84,9 +76,9 @@ function PromocoesPage() {
     }
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase.from("coupons").insert([{
-        delivery_id: deliveryId,
+        company_id: companyId,
         code: couponCode.toUpperCase().replace(/\s+/g, ""),
         discount: Number(couponDiscount),
         min_order: Number(couponMinOrder) || 0,
@@ -114,9 +106,9 @@ function PromocoesPage() {
   // Toggle Coupon Status
   const toggleCoupon = async (id: string, currentStatus: string, code: string) => {
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const nextStatus = currentStatus === "ativo" ? "pausado" : "ativo";
-      const { error } = await supabase.from("coupons").update({ status: nextStatus }).eq("id", id).eq("delivery_id", deliveryId);
+      const { error } = await supabase.from("coupons").update({ status: nextStatus }).eq("id", id).eq("company_id", companyId);
       if (error) throw error;
 
       setCoupons(coupons.map(c => c.id === id ? { ...c, status: nextStatus } : c));
@@ -128,8 +120,8 @@ function PromocoesPage() {
 
   const deleteCoupon = async (id: string, code: string) => {
     try {
-      const deliveryId = await getDeliveryId();
-      const { error } = await supabase.from("coupons").delete().eq("id", id).eq("delivery_id", deliveryId);
+      const companyId = await getCompanyId();
+      const { error } = await supabase.from("coupons").delete().eq("id", id).eq("company_id", companyId);
       if (error) throw error;
 
       setCoupons(coupons.filter(c => c.id !== id));
@@ -151,13 +143,13 @@ function PromocoesPage() {
     }
 
     try {
-      console.log(">>> [DEBUG] Pegando deliveryId...");
-      const deliveryId = await getDeliveryId();
-      console.log(">>> [DEBUG] deliveryId:", deliveryId);
+      console.log(">>> [DEBUG] Pegando companyId...");
+      const companyId = await getCompanyId();
+      console.log(">>> [DEBUG] companyId:", companyId);
       
       console.log(">>> [DEBUG] Inserindo no Supabase...");
       const { data, error } = await supabase.from("message_templates").insert([{
-        delivery_id: deliveryId,
+        company_id: companyId,
         name: templateName,
         body: templateBody
       }]).select();
@@ -183,8 +175,8 @@ function PromocoesPage() {
 
   const deleteTemplate = async (id: string, name: string) => {
     try {
-      const deliveryId = await getDeliveryId();
-      const { error } = await supabase.from("message_templates").delete().eq("id", id).eq("delivery_id", deliveryId);
+      const companyId = await getCompanyId();
+      const { error } = await supabase.from("message_templates").delete().eq("id", id).eq("company_id", companyId);
       if (error) throw error;
 
       setTemplates(templates.filter(t => t.id !== id));
@@ -206,9 +198,9 @@ function PromocoesPage() {
     }
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase.from("triggers").insert([{
-        delivery_id: deliveryId,
+        company_id: companyId,
         name: triggerName,
         delay: triggerDelay,
         template_name: triggerTemplate,
@@ -235,9 +227,9 @@ function PromocoesPage() {
   // Toggle Trigger Status
   const toggleTrigger = async (id: string, currentState: boolean, name: string) => {
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const nextState = !currentState;
-      const { error } = await supabase.from("triggers").update({ active: nextState }).eq("id", id).eq("delivery_id", deliveryId);
+      const { error } = await supabase.from("triggers").update({ active: nextState }).eq("id", id).eq("company_id", companyId);
       if (error) throw error;
 
       setTriggers(triggers.map(t => t.id === id ? { ...t, active: nextState } : t));
@@ -249,8 +241,8 @@ function PromocoesPage() {
 
   const deleteTrigger = async (id: string, name: string) => {
     try {
-      const deliveryId = await getDeliveryId();
-      const { error } = await supabase.from("triggers").delete().eq("id", id).eq("delivery_id", deliveryId);
+      const companyId = await getCompanyId();
+      const { error } = await supabase.from("triggers").delete().eq("id", id).eq("company_id", companyId);
       if (error) throw error;
 
       setTriggers(triggers.filter(t => t.id !== id));

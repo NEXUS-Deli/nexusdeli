@@ -1,9 +1,32 @@
-import { Search, Bell, Plus, Flame, Sun, Moon } from "lucide-react";
+import { Search, Bell, Plus, Flame, Sun, Moon, LogOut, Shield } from "lucide-react";
 import { useTheme } from "@/components/nexus/ThemeProvider";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
+  const { profile, companies, activeCompanyId, setActiveCompanyId, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+
+  const getInitials = () => {
+    if (!profile) return "US";
+    if (profile.full_name) {
+      const parts = profile.full_name.trim().split(" ");
+      if (parts.length > 1) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return parts[0][0].toUpperCase();
+    }
+    return profile.email[0].toUpperCase();
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate({ to: "/login" });
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/70 px-5 backdrop-blur-xl lg:px-8">
       <div className="lg:hidden flex items-center gap-2">
@@ -23,6 +46,25 @@ export function Topbar() {
       </div>
 
       <div className="flex-1 md:flex-none" />
+
+      {/* Super Admin Company Selector */}
+      {isSuperAdmin && companies.length > 0 && (
+        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs">
+          <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[9px] select-none">Empresa Ativa:</span>
+          <select
+            value={activeCompanyId || ""}
+            onChange={(e) => setActiveCompanyId(e.target.value)}
+            className="bg-transparent border-none outline-none font-semibold text-foreground cursor-pointer focus:ring-0 text-xs pr-6"
+          >
+            {companies.map((c) => (
+              <option key={c.id} value={c.id} className="bg-background text-foreground text-xs">
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <div className="hidden sm:flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-2.5 py-1.5 text-xs">
@@ -54,9 +96,22 @@ export function Topbar() {
           </button>
         </Link>
 
-        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-warning grid place-items-center text-xs font-bold select-none">
-          MS
+        {/* User profile bubble */}
+        <div 
+          className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-warning grid place-items-center text-xs font-bold select-none cursor-help"
+          title={profile?.full_name || profile?.email || ""}
+        >
+          {getInitials()}
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="h-9 w-9 grid place-items-center rounded-lg border border-border/80 hover:border-destructive hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+          title="Sair"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       </div>
     </header>
   );

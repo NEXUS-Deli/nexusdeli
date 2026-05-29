@@ -9,47 +9,39 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as CardapioRouteImport } from './routes/cardapio'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
-import { Route as FilaImpressaoRouteImport } from './routes/fila-impressao'
-import { Route as PedidosRouteImport } from './routes/pedidos'
-import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as PromocoesRouteImport } from './routes/promocoes'
+import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as PedidosRouteImport } from './routes/pedidos'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as FilaImpressaoRouteImport } from './routes/fila-impressao'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CriarContaRouteImport } from './routes/criar-conta'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as CardapioRouteImport } from './routes/cardapio'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
+import { Route as AguardandoVinculoRouteImport } from './routes/aguardando-vinculo'
 import { Route as AgentesIaRouteImport } from './routes/agentes-ia'
 import { Route as IndexRouteImport } from './routes/index'
 
-const CardapioRoute = CardapioRouteImport.update({
-  id: '/cardapio',
-  path: '/cardapio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FilaImpressaoRoute = FilaImpressaoRouteImport.update({
-  id: '/fila-impressao',
-  path: '/fila-impressao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PedidosRoute = PedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProdutosRoute = ProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PromocoesRoute = PromocoesRouteImport.update({
@@ -57,9 +49,54 @@ const PromocoesRoute = PromocoesRouteImport.update({
   path: '/promocoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProdutosRoute = ProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedidosRoute = PedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilaImpressaoRoute = FilaImpressaoRouteImport.update({
+  id: '/fila-impressao',
+  path: '/fila-impressao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarContaRoute = CriarContaRouteImport.update({
+  id: '/criar-conta',
+  path: '/criar-conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardapioRoute = CardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampanhasRoute = CampanhasRouteImport.update({
@@ -70,6 +107,11 @@ const CampanhasRoute = CampanhasRouteImport.update({
 const AutomacoesRoute = AutomacoesRouteImport.update({
   id: '/automacoes',
   path: '/automacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AguardandoVinculoRoute = AguardandoVinculoRouteImport.update({
+  id: '/aguardando-vinculo',
+  path: '/aguardando-vinculo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentesIaRoute = AgentesIaRouteImport.update({
@@ -86,44 +128,65 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agentes-ia': typeof AgentesIaRoute
+  '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/dashboard': typeof DashboardRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agentes-ia': typeof AgentesIaRoute
+  '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/dashboard': typeof DashboardRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agentes-ia': typeof AgentesIaRoute
+  '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/dashboard': typeof DashboardRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
   '/promocoes': typeof PromocoesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRouteTypes {
@@ -131,103 +194,110 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agentes-ia'
+    | '/aguardando-vinculo'
     | '/automacoes'
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
     | '/configuracoes'
+    | '/criar-conta'
+    | '/dashboard'
+    | '/esqueci-senha'
     | '/fila-impressao'
+    | '/login'
     | '/pedidos'
     | '/produtos'
     | '/promocoes'
+    | '/redefinir-senha'
+    | '/super-admin'
     | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/agentes-ia'
+    | '/aguardando-vinculo'
     | '/automacoes'
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
     | '/configuracoes'
+    | '/criar-conta'
+    | '/dashboard'
+    | '/esqueci-senha'
     | '/fila-impressao'
+    | '/login'
     | '/pedidos'
     | '/produtos'
     | '/promocoes'
+    | '/redefinir-senha'
+    | '/super-admin'
     | '/whatsapp'
   id:
     | '__root__'
     | '/'
     | '/agentes-ia'
+    | '/aguardando-vinculo'
     | '/automacoes'
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
     | '/configuracoes'
+    | '/criar-conta'
+    | '/dashboard'
+    | '/esqueci-senha'
     | '/fila-impressao'
+    | '/login'
     | '/pedidos'
     | '/produtos'
     | '/promocoes'
+    | '/redefinir-senha'
+    | '/super-admin'
     | '/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentesIaRoute: typeof AgentesIaRoute
+  AguardandoVinculoRoute: typeof AguardandoVinculoRoute
   AutomacoesRoute: typeof AutomacoesRoute
   CampanhasRoute: typeof CampanhasRoute
   CardapioRoute: typeof CardapioRoute
   ClientesRoute: typeof ClientesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  CriarContaRoute: typeof CriarContaRoute
+  DashboardRoute: typeof DashboardRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   FilaImpressaoRoute: typeof FilaImpressaoRoute
+  LoginRoute: typeof LoginRoute
   PedidosRoute: typeof PedidosRoute
   ProdutosRoute: typeof ProdutosRoute
   PromocoesRoute: typeof PromocoesRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
+  SuperAdminRoute: typeof SuperAdminRoute
   WhatsappRoute: typeof WhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/cardapio': {
-      id: '/cardapio'
-      path: '/cardapio'
-      fullPath: '/cardapio'
-      preLoaderRoute: typeof CardapioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fila-impressao': {
-      id: '/fila-impressao'
-      path: '/fila-impressao'
-      fullPath: '/fila-impressao'
-      preLoaderRoute: typeof FilaImpressaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pedidos': {
-      id: '/pedidos'
-      path: '/pedidos'
-      fullPath: '/pedidos'
-      preLoaderRoute: typeof PedidosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/produtos': {
-      id: '/produtos'
-      path: '/produtos'
-      fullPath: '/produtos'
-      preLoaderRoute: typeof ProdutosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/whatsapp': {
       id: '/whatsapp'
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/promocoes': {
@@ -237,11 +307,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PromocoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/produtos': {
+      id: '/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedidos': {
+      id: '/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof PedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fila-impressao': {
+      id: '/fila-impressao'
+      path: '/fila-impressao'
+      fullPath: '/fila-impressao'
+      preLoaderRoute: typeof FilaImpressaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-conta': {
+      id: '/criar-conta'
+      path: '/criar-conta'
+      fullPath: '/criar-conta'
+      preLoaderRoute: typeof CriarContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
       fullPath: '/clientes'
       preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cardapio': {
+      id: '/cardapio'
+      path: '/cardapio'
+      fullPath: '/cardapio'
+      preLoaderRoute: typeof CardapioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campanhas': {
@@ -256,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/automacoes'
       fullPath: '/automacoes'
       preLoaderRoute: typeof AutomacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aguardando-vinculo': {
+      id: '/aguardando-vinculo'
+      path: '/aguardando-vinculo'
+      fullPath: '/aguardando-vinculo'
+      preLoaderRoute: typeof AguardandoVinculoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agentes-ia': {
@@ -278,15 +418,22 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentesIaRoute: AgentesIaRoute,
+  AguardandoVinculoRoute: AguardandoVinculoRoute,
   AutomacoesRoute: AutomacoesRoute,
   CampanhasRoute: CampanhasRoute,
   CardapioRoute: CardapioRoute,
   ClientesRoute: ClientesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  CriarContaRoute: CriarContaRoute,
+  DashboardRoute: DashboardRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   FilaImpressaoRoute: FilaImpressaoRoute,
+  LoginRoute: LoginRoute,
   PedidosRoute: PedidosRoute,
   ProdutosRoute: ProdutosRoute,
   PromocoesRoute: PromocoesRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
+  SuperAdminRoute: SuperAdminRoute,
   WhatsappRoute: WhatsappRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,9 +1,10 @@
-import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone } from "lucide-react";
+import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 
-const nav = [
-  { icon: LayoutDashboard, label: "Operação", to: "/" },
+const baseNav = [
+  { icon: LayoutDashboard, label: "Operação", to: "/dashboard" },
   { icon: ShoppingBag, label: "Pedidos", to: "/pedidos" },
   { icon: Printer, label: "Impressão", to: "/fila-impressao" },
   { icon: Megaphone, label: "Campanhas", to: "/campanhas" },
@@ -18,11 +19,19 @@ const nav = [
 export function Sidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { profile } = useAuth();
+
+  const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+
+  const nav = isSuperAdmin
+    ? [...baseNav, { icon: Shield, label: "Super Admin", to: "/super-admin" }]
+    : baseNav;
 
   const isActive = (to: string) => {
-    if (to === "/") return currentPath === "/";
+    if (to === "/dashboard") return currentPath === "/dashboard";
     return currentPath.startsWith(to);
   };
+
 
   return (
     <aside className="hidden lg:flex w-[260px] shrink-0 flex-col border-r border-border bg-surface/60 backdrop-blur-xl sticky top-0 h-screen">
