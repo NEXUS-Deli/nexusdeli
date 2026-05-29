@@ -25,7 +25,7 @@ function HomeRedirector() {
       return;
     }
 
-    const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+    const isSuperAdmin = !!profile?.is_super_admin;
     if (isSuperAdmin) {
       navigate({ to: "/super-admin" });
     } else {

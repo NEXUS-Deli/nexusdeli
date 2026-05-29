@@ -11,7 +11,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const publicRoutes = ["/login", "/criar-conta", "/esqueci-senha", "/redefinir-senha"];
   const isPublicRoute = publicRoutes.includes(location.pathname);
 
-  const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+  const isSuperAdmin = !!profile?.is_super_admin;
   const hasCompany = companies && companies.length > 0;
 
   useEffect(() => {

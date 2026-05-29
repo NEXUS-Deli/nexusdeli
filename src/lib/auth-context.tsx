@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(finalProfile);
 
-      const isSuperAdmin = finalProfile.is_super_admin || finalProfile.role === "super_admin";
+      const isSuperAdmin = !!finalProfile.is_super_admin;
 
       if (isSuperAdmin) {
         // Super Admin sees all companies

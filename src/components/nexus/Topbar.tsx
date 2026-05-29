@@ -8,7 +8,7 @@ export function Topbar() {
   const { profile, companies, activeCompanyId, setActiveCompanyId, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+  const isSuperAdmin = !!profile?.is_super_admin;
 
   const getInitials = () => {
     if (!profile) return "US";

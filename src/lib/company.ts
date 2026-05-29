@@ -20,7 +20,7 @@ export async function getCompanyId(): Promise<string> {
       .eq("id", user.id)
       .maybeSingle();
 
-    const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+    const isSuperAdmin = !!profile?.is_super_admin;
 
     if (isSuperAdmin) {
       // Return first company or default

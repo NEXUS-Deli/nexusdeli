@@ -62,7 +62,7 @@ function LoginPage() {
         toast.success("Login realizado com sucesso!");
 
         // The AuthGuard will handle redirection, but let's do a proactive push:
-        const isSuperAdmin = dbProfile?.is_super_admin || dbProfile?.role === "super_admin";
+        const isSuperAdmin = !!dbProfile?.is_super_admin;
         if (isSuperAdmin) {
           navigate({ to: "/super-admin" });
         } else {

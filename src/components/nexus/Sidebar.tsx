@@ -21,7 +21,7 @@ export function Sidebar() {
   const currentPath = location.pathname;
   const { profile } = useAuth();
 
-  const isSuperAdmin = profile?.is_super_admin || profile?.role === "super_admin";
+  const isSuperAdmin = !!profile?.is_super_admin;
 
   const nav = isSuperAdmin
     ? [...baseNav, { icon: Shield, label: "Super Admin", to: "/super-admin" }]
