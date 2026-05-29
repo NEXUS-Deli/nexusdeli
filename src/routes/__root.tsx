@@ -74,24 +74,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Flow State Delivery automates WhatsApp for restaurants, recovering clients and driving recurring orders." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Flow State Delivery automates WhatsApp for restaurants, recovering clients and driving recurring orders." },
+      { title: "ChamAI Delivery — O sistema operacional do seu delivery" },
+      { name: "description", content: "Mais pedidos, mais clientes, mais vendas. ChamAI Delivery automatiza seu delivery." },
+      { name: "author", content: "ChamAI" },
+      { property: "og:title", content: "ChamAI Delivery" },
+      { property: "og:description", content: "Mais pedidos, mais clientes, mais vendas. ChamAI Delivery automatiza seu delivery." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Flow State Delivery automates WhatsApp for restaurants, recovering clients and driving recurring orders." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9c820533-4e83-410f-9b47-05f66df03abc/id-preview-0758993f--dbb69b25-81ad-42ec-bf1f-171b5fbfa33c.lovable.app-1779207920865.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9c820533-4e83-410f-9b47-05f66df03abc/id-preview-0758993f--dbb69b25-81ad-42ec-bf1f-171b5fbfa33c.lovable.app-1779207920865.png" },
+      { name: "twitter:site", content: "@ChamAIDelivery" },
+      { name: "twitter:title", content: "ChamAI Delivery" },
+      { name: "twitter:description", content: "Mais pedidos, mais clientes, mais vendas. ChamAI Delivery automatiza seu delivery." },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='orangeGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23FF5E36'/%3E%3Cstop offset='100%25' stop-color='%23FF1E56'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='46' fill='url(%23orangeGrad)'/%3E%3Cpath d='M35 55 L45 35 H60 L50 55 Z' fill='white'/%3E%3Ccircle cx='40' cy='65' r='8' fill='white'/%3E%3Ccircle cx='60' cy='65' r='8' fill='white'/%3E%3Cpath d='M58 45 L68 32 H58 Z' fill='white'/%3E%3Ccircle cx='70' cy='28' r='7' fill='white'/%3E%3C/svg%3E"
+      }
     ],
   }),
   shellComponent: RootShell,
