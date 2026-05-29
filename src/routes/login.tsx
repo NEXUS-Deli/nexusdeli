@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2, ArrowRight, LogOut, ShieldAlert } from "lucide-react";
@@ -9,12 +9,34 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+const FOOD_SLIDES = [
+  {
+    image: "/food_burger.png",
+    title: "Hambúrgueres Suculentos",
+    description: "Desperte o desejo do seu cliente na hora com fotos que dão água na boca e campanhas que vendem sozinhas."
+  },
+  {
+    image: "/food_pizza.png",
+    title: "Pizzas Irresistíveis",
+    description: "Recupere aquele cliente de pizza de domingo automaticamente com ofertas irresistíveis direto no WhatsApp."
+  }
+];
+
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
   const { user, profile, companies, logout, refreshAuth } = useAuth();
+
+  // Slide loop timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % FOOD_SLIDES.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,21 +127,57 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-[#F9FAFB] text-[#1F2937]">
-      {/* Left side: Premium illustration of friendly motoboy (visible on desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#FF5E36] to-[#FF1E56] items-center justify-center p-12">
-        {/* Abstract background grids */}
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
-        
-        <div className="relative z-10 max-w-lg text-center text-white flex flex-col items-center">
-          <img
-            src="/delivery_motoboy.png"
-            alt="ChamAI Delivery Rider"
-            className="w-[380px] h-[380px] object-contain rounded-3xl shadow-2xl mb-8 transform hover:scale-[1.02] transition-transform duration-500"
-          />
-          <h2 className="text-3xl font-extrabold tracking-tight">O fim do delivery parado!</h2>
-          <p className="mt-4 text-white/90 text-sm leading-relaxed max-w-md">
-            Automatize o atendimento do seu restaurante no WhatsApp, recupere clientes inativos e venda muito mais com a inteligência artificial da ChamAI.
+      {/* Left side: Premium Food Porn Crossfade Slideshow (desktop only) */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-black items-center justify-center p-12">
+        {/* Slides loop */}
+        {FOOD_SLIDES.map((slide, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              currentSlide === idx ? "opacity-90" : "opacity-0"
+            }`}
+          >
+            {/* Background image covering entire container */}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-full h-full object-cover transform scale-105"
+            />
+            {/* Dark vignette overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30" />
+          </div>
+        ))}
+
+        {/* Floating elements inside left screen */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1.2px,transparent_1.2px)] [background-size:32px_32px] opacity-10 pointer-events-none" />
+
+        {/* Text information overlays */}
+        <div className="relative z-10 max-w-lg text-center text-white flex flex-col items-center mt-auto pb-8">
+          <div className="flex gap-2 mb-6">
+            {FOOD_SLIDES.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  currentSlide === idx ? "w-6 bg-[#FF5E36]" : "w-2 bg-white/40"
+                }`}
+              />
+            ))}
+          </div>
+          
+          <h2 className="text-4xl font-black tracking-tight drop-shadow-md transition-all duration-500 transform translate-y-0">
+            {FOOD_SLIDES[currentSlide].title}
+          </h2>
+          <p className="mt-4 text-white/90 text-sm leading-relaxed max-w-md drop-shadow-md">
+            {FOOD_SLIDES[currentSlide].description}
           </p>
+          
+          <div className="mt-8 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#FF5E36] bg-black/50 backdrop-blur-md border border-white/10 rounded-full py-1.5 px-4">
+            <span>Mais pedidos</span>
+            <span className="text-white/20">•</span>
+            <span>Mais clientes</span>
+            <span className="text-white/20">•</span>
+            <span>Mais vendas</span>
+          </div>
         </div>
       </div>
 
