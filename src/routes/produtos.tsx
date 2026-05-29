@@ -98,10 +98,23 @@ function ProductsPage() {
           .eq("company_id", companyId)
           .order("display_order"),
       ]);
-      if (prodResult.data) setProducts(prodResult.data as any);
-      if (catResult.data) setCategories(catResult.data);
-    } catch (err) {
-      console.error(err);
+
+      if (prodResult.error) {
+        console.error("Erro produtos:", prodResult.error);
+        toast.error(`Erro ao carregar produtos: ${prodResult.error.message}`);
+      } else if (prodResult.data) {
+        setProducts(prodResult.data as any);
+      }
+
+      if (catResult.error) {
+        console.error("Erro categorias:", catResult.error);
+        toast.error(`Erro ao carregar categorias: ${catResult.error.message}`);
+      } else if (catResult.data) {
+        setCategories(catResult.data);
+      }
+    } catch (err: any) {
+      console.error("Erro geral no loadData:", err);
+      toast.error(`Falha na conexão: ${err?.message || "Erro desconhecido"}`);
     } finally {
       setIsLoading(false);
     }
