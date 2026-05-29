@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
-import { getCompanyId } from "@/lib/company";
 import { 
   Users, 
   Upload, 
@@ -73,14 +72,23 @@ function ClientsPage() {
     name: "", phone: "", favorite_dish: "", total_spent: "", last_order: "", folder_id: ""
   });
 
+  const getDeliveryId = async (): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id || "00000000-0000-0000-0000-000000000000";
+    } catch {
+      return "00000000-0000-0000-0000-000000000000";
+    }
+  };
+
   // Carregar dados iniciais do Supabase
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const [foldersResult, clientsResult] = await Promise.all([
-        supabase.from("folders").select("*").eq("company_id", companyId).order("created_at", { ascending: true }),
-        supabase.from("clients").select("*").eq("company_id", companyId).order("created_at", { ascending: false })
+        supabase.from("folders").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: true }),
+        supabase.from("clients").select("*").eq("delivery_id", deliveryId).order("created_at", { ascending: false })
       ]);
 
       if (foldersResult.error) throw foldersResult.error;
@@ -131,10 +139,10 @@ function ClientsPage() {
     if (!newFolderName.trim()) return;
 
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newFolderName.trim(), company_id: companyId }])
+        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId }])
         .select();
 
       if (error) throw error;
@@ -177,7 +185,7 @@ function ClientsPage() {
     }
 
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { error } = await supabase.from("clients").insert([{
         name: manualLead.name,
         phone: manualLead.phone,
@@ -185,7 +193,7 @@ function ClientsPage() {
         total_spent: Number(manualLead.total_spent) || 0,
         last_order: manualLead.last_order || null,
         folder_id: manualLead.folder_id,
-        company_id: companyId
+        delivery_id: deliveryId
       }]);
 
       if (error) throw error;
@@ -221,9 +229,9 @@ function ClientsPage() {
       if (!content) return;
 
       try {
-        const companyId = await getCompanyId();
+        const deliveryId = await getDeliveryId();
         const lines = content.split("\n");
-        const newClientsList: Partial<ClientRow & { company_id: string }>[] = [];
+        const newClientsList: Partial<ClientRow & { delivery_id: string }>[] = [];
 
         lines.forEach((line, index) => {
           if (index === 0 && line.toLowerCase().includes("nome")) return;
@@ -246,7 +254,7 @@ function ClientsPage() {
               total_spent,
               last_order,
               folder_id: targetFolderId,
-              company_id: companyId
+              delivery_id: deliveryId
             });
           }
         });
