@@ -87,6 +87,15 @@ function CampaignsPage() {
   const [isDbError, setIsDbError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getDeliveryId = async (): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id || "00000000-0000-0000-0000-000000000000";
+    } catch {
+      return "00000000-0000-0000-0000-000000000000";
+    }
+  };
+
   // Form States
   const [name, setName] = useState("");
   const [segment, setSegment] = useState("");
@@ -128,11 +137,11 @@ function CampaignsPage() {
   const loadWhatsappInstances = useCallback(async () => {
     setIsLoadingInstances(true);
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { data, error } = await supabase
         .from("whatsapp_instances")
         .select("id, name, status, token")
-        .eq("company_id", companyId);
+        .eq("delivery_id", deliveryId);
 
       if (error) throw error;
 
@@ -155,11 +164,11 @@ function CampaignsPage() {
     if (!hideLoading) setIsLoadingList(true);
     setIsDbError(false);
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { data, error } = await supabase
         .from("vw_campaigns_with_metrics")
         .select("*")
-        .eq("company_id", companyId)
+        .eq("delivery_id", deliveryId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -194,11 +203,11 @@ function CampaignsPage() {
   // ─── Carregar pastas do CRM ────────────────────────────────────────────────
   const loadFolders = useCallback(async () => {
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { data, error } = await supabase
         .from("folders")
         .select("id, name")
-        .eq("company_id", companyId)
+        .eq("delivery_id", deliveryId)
         .order("created_at", { ascending: true });
         
       if (error) throw error;
@@ -216,11 +225,11 @@ function CampaignsPage() {
 
   const loadTemplatesAndCoupons = useCallback(async () => {
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       
       const [resTemplates, resCoupons] = await Promise.all([
-        supabase.from("message_templates").select("id, name, body").eq("company_id", companyId).order("created_at", { ascending: false }),
-        supabase.from("coupons").select("id, code, status").eq("company_id", companyId).eq("status", "ativo").order("created_at", { ascending: false })
+        supabase.from("message_templates").select("id, name, body").eq("delivery_id", deliveryId).order("created_at", { ascending: false }),
+        supabase.from("coupons").select("id, code, status").eq("delivery_id", deliveryId).eq("status", "ativo").order("created_at", { ascending: false })
       ]);
 
       if (resTemplates.data) setDbTemplates(resTemplates.data);
@@ -266,6 +275,7 @@ function CampaignsPage() {
 
     try {
       setIsSubmitting(true);
+      const deliveryId = await getDeliveryId();
       const companyId = await getCompanyId();
       const formattedDate = new Date().toLocaleDateString("pt-BR");
 
@@ -285,7 +295,7 @@ function CampaignsPage() {
       let uploadedMediaUrl = "";
       if (mediaFile) {
         const fileExt = mediaFile.name.split(".").pop();
-        const fileName = `${companyId}/${Date.now()}.${fileExt}`;
+        const fileName = `${deliveryId}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("campaigns")
@@ -324,7 +334,7 @@ function CampaignsPage() {
           schedule_type: scheduleType,
           schedule_date: scheduleType === "agendado" ? scheduleDate : null,
           schedule_time: scheduleType === "agendado" ? scheduleTime : null,
-          company_id: companyId,
+          delivery_id: deliveryId,
           min_delay: minDelay,
           max_delay: maxDelay,
           msg_delay: msgDelay,
@@ -344,7 +354,7 @@ function CampaignsPage() {
             .from("clients")
             .select("id, phone")
             .eq("folder_id", segment)
-            .eq("company_id", companyId);
+            .eq("delivery_id", deliveryId);
 
           if (leadsError) throw leadsError;
 
@@ -354,7 +364,7 @@ function CampaignsPage() {
               client_id: lead.id,
               phone: lead.phone,
               status: "pending",
-              company_id: companyId
+              delivery_id: deliveryId
             }));
 
             const { error: queueError } = await supabase.from("campaign_queue").insert(queuePayload);
@@ -384,7 +394,7 @@ function CampaignsPage() {
                 instanceToken: data[0].instance_token,
                 agent: data[0].agent,
                 message: data[0].message,
-                company_id: data[0].company_id,
+                delivery_id: data[0].delivery_id,
                 schedule_type: data[0].schedule_type,
                 created_at: data[0].created_at,
                 min_delay: data[0].min_delay,
@@ -432,12 +442,12 @@ function CampaignsPage() {
   const toggleCampaignStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === "rodando" ? "pausada" : "rodando";
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { error } = await supabase
         .from("campaigns")
         .update({ status: nextStatus })
         .eq("id", id)
-        .eq("company_id", companyId);
+        .eq("delivery_id", deliveryId);
 
       if (error) throw error;
 
@@ -457,12 +467,12 @@ function CampaignsPage() {
     if (!confirmed) return;
 
     try {
-      const companyId = await getCompanyId();
+      const deliveryId = await getDeliveryId();
       const { error } = await supabase
         .from("campaigns")
         .delete()
         .eq("id", id)
-        .eq("company_id", companyId);
+        .eq("delivery_id", deliveryId);
 
       if (error) throw error;
 
