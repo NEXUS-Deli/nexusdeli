@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
@@ -132,6 +132,7 @@ function CampaignsPage() {
   };
 
   const [activeTab, setActiveTab] = useState<"todas" | "rodando" | "agendadas" | "finalizadas">("todas");
+  const hasActiveCampaignsRef = useRef(false);
 
   // ─── Carregar aparelhos de WhatsApp reais cadastrados no Supabase ───────────
   const loadWhatsappInstances = useCallback(async () => {
@@ -250,15 +251,18 @@ function CampaignsPage() {
 
   // Auto-Refresh (Live Sync a cada 15 segundos)
   useEffect(() => {
-    const hasActiveCampaigns = campaigns.some(c => c.status === "rodando" || c.status === "agendada");
-    if (!hasActiveCampaigns) return;
+    hasActiveCampaignsRef.current = campaigns.some(c => c.status === "rodando" || c.status === "agendada");
+  }, [campaigns]);
 
+  useEffect(() => {
     const intervalId = setInterval(() => {
-      loadCampaigns(true);
+      if (hasActiveCampaignsRef.current) {
+        loadCampaigns(true);
+      }
     }, 15000);
 
     return () => clearInterval(intervalId);
-  }, [campaigns, loadCampaigns]);
+  }, [loadCampaigns]);
 
   // ─── Criar nova campanha ──────────────────────────────────────────────────
   const handleCreateCampaign = async (e: React.FormEvent) => {
