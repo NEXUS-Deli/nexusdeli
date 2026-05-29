@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "npm run build",
+  "buildCommand": "VERCEL=0 npm run build",
   "outputDirectory": "dist/client",
   "cleanUrls": true,
   "rewrites": [
