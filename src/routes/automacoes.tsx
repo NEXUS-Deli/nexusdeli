@@ -162,7 +162,10 @@ function AutomationsPage() {
     }
 
     const instanceData = whatsappInstances.find(i => i.name === selectedExtratorInstance);
-    if (!instanceData) return;
+    if (!instanceData) {
+      toast.error("Instância não encontrada. Reconecte o WhatsApp.");
+      return;
+    }
 
     try {
       setIsExtracting(true);
@@ -326,13 +329,15 @@ function AutomationsPage() {
     }
 
     const instanceData = whatsappInstances.find(i => i.name === selectedImportInstance);
-    if (!instanceData) return;
+    if (!instanceData) {
+      toast.error("Instância não encontrada. Reconecte o WhatsApp.");
+      return;
+    }
 
     try {
       setIsImporting(true);
       setImportedContacts([]);
       const deliveryId = await getDeliveryId();
-      const companyId = await getCompanyId();
       
       const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/4e395ffa-f900-41c3-a0e9-80b2a3013ec0", {
         method: "POST",
@@ -361,6 +366,7 @@ function AutomationsPage() {
       }
       
       if (leadsArray.length > 0) {
+        const companyId = await getCompanyId();
         // Inserção em massa direto no Supabase
         const insertPayload = leadsArray.map(lead => ({
           name: lead.contact_name || lead.nome || "Contato Importado",
@@ -399,7 +405,10 @@ function AutomationsPage() {
     }
 
     const instanceData = whatsappInstances.find(i => i.name === selectedExportInstance);
-    if (!instanceData) return;
+    if (!instanceData) {
+      toast.error("Instância não encontrada. Reconecte o WhatsApp.");
+      return;
+    }
 
     try {
       setIsExporting(true);
@@ -482,7 +491,10 @@ function AutomationsPage() {
     }
 
     const instanceData = whatsappInstances.find(i => i.name === selectedVerifyInstance);
-    if (!instanceData) return;
+    if (!instanceData) {
+      toast.error("Instância não encontrada. Reconecte o WhatsApp.");
+      return;
+    }
 
     try {
       setIsVerifying(true);
