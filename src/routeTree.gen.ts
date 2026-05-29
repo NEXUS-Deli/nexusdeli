@@ -21,6 +21,7 @@ import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ComercialRouteImport } from './routes/comercial'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CardapioRouteImport } from './routes/cardapio'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
@@ -89,6 +90,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ComercialRoute = ComercialRouteImport.update({
+  id: '/comercial',
+  path: '/comercial',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-conta': typeof CriarContaRoute
   '/dashboard': typeof DashboardRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-conta': typeof CriarContaRoute
   '/dashboard': typeof DashboardRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/campanhas': typeof CampanhasRoute
   '/cardapio': typeof CardapioRoute
   '/clientes': typeof ClientesRoute
+  '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-conta': typeof CriarContaRoute
   '/dashboard': typeof DashboardRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
+    | '/comercial'
     | '/configuracoes'
     | '/criar-conta'
     | '/dashboard'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
+    | '/comercial'
     | '/configuracoes'
     | '/criar-conta'
     | '/dashboard'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/campanhas'
     | '/cardapio'
     | '/clientes'
+    | '/comercial'
     | '/configuracoes'
     | '/criar-conta'
     | '/dashboard'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   CampanhasRoute: typeof CampanhasRoute
   CardapioRoute: typeof CardapioRoute
   ClientesRoute: typeof ClientesRoute
+  ComercialRoute: typeof ComercialRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   CriarContaRoute: typeof CriarContaRoute
   DashboardRoute: typeof DashboardRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/comercial': {
+      id: '/comercial'
+      path: '/comercial'
+      fullPath: '/comercial'
+      preLoaderRoute: typeof ComercialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampanhasRoute: CampanhasRoute,
   CardapioRoute: CardapioRoute,
   ClientesRoute: ClientesRoute,
+  ComercialRoute: ComercialRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   CriarContaRoute: CriarContaRoute,
   DashboardRoute: DashboardRoute,

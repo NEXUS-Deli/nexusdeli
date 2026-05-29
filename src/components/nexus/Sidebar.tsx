@@ -1,4 +1,4 @@
-import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone, Shield } from "lucide-react";
+import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone, Shield, Presentation } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
@@ -24,7 +24,11 @@ export function Sidebar() {
   const isSuperAdmin = !!profile?.is_super_admin;
 
   const nav = isSuperAdmin
-    ? [...baseNav, { icon: Shield, label: "Super Admin", to: "/super-admin" }]
+    ? [
+        ...baseNav,
+        { icon: Shield, label: "Super Admin", to: "/super-admin" },
+        { icon: Presentation, label: "Comercial", to: "/comercial" }
+      ]
     : baseNav;
 
   const isActive = (to: string) => {
