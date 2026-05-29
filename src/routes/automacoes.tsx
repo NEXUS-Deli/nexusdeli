@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
 import { supabase } from "@/lib/supabase";
+import { getCompanyId } from "@/lib/company";
 import { 
   Zap, 
   Percent, 
@@ -258,9 +259,10 @@ function AutomationsPage() {
 
     try {
       const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId }])
+        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId, company_id: companyId }])
         .select();
 
       if (error) throw error;
@@ -288,12 +290,14 @@ function AutomationsPage() {
     try {
       setIsSavingLeads(true);
       const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
       const insertPayload = extractedLeads.map(lead => ({
         name: lead.nome || "Lead S/ Nome",
         phone: lead.telefone || "",
         folder_id: targetFolderId,
         delivery_id: deliveryId,
+        company_id: companyId,
         total_spent: 0
       }));
 
@@ -328,6 +332,7 @@ function AutomationsPage() {
       setIsImporting(true);
       setImportedContacts([]);
       const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       
       const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/4e395ffa-f900-41c3-a0e9-80b2a3013ec0", {
         method: "POST",
@@ -362,6 +367,7 @@ function AutomationsPage() {
           phone: lead.phone || lead.telefone || "",
           folder_id: targetFolderId,
           delivery_id: deliveryId,
+          company_id: companyId,
           total_spent: 0
         }));
 
@@ -446,9 +452,10 @@ function AutomationsPage() {
     if (!newExportFolderName.trim()) return;
     try {
       const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newExportFolderName.trim(), delivery_id: deliveryId }])
+        .insert([{ name: newExportFolderName.trim(), delivery_id: deliveryId, company_id: companyId }])
         .select();
       if (error) throw error;
       if (data && data.length > 0) {
