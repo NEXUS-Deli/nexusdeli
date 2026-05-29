@@ -1,1 +1,7 @@
 node_modules
+dist
+.tanstack
+.wrangler
+.env
+.DS_Store
+tmp
