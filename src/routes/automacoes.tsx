@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
 import { supabase } from "@/lib/supabase";
-import { getCompanyId } from "@/lib/company";
 import { 
   Zap, 
   Percent, 
@@ -262,10 +261,9 @@ function AutomationsPage() {
 
     try {
       const deliveryId = await getDeliveryId();
-      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId, company_id: companyId }])
+        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId }])
         .select();
 
       if (error) throw error;
@@ -293,14 +291,12 @@ function AutomationsPage() {
     try {
       setIsSavingLeads(true);
       const deliveryId = await getDeliveryId();
-      const companyId = await getCompanyId();
 
       const insertPayload = extractedLeads.map(lead => ({
         name: lead.nome || "Lead S/ Nome",
         phone: lead.telefone || "",
         folder_id: targetFolderId,
         delivery_id: deliveryId,
-        company_id: companyId,
         total_spent: 0
       }));
 
@@ -366,14 +362,12 @@ function AutomationsPage() {
       }
       
       if (leadsArray.length > 0) {
-        const companyId = await getCompanyId();
         // Inserção em massa direto no Supabase
         const insertPayload = leadsArray.map(lead => ({
           name: lead.contact_name || lead.nome || "Contato Importado",
           phone: lead.phone || lead.telefone || "",
           folder_id: targetFolderId,
           delivery_id: deliveryId,
-          company_id: companyId,
           total_spent: 0
         }));
 
@@ -461,10 +455,9 @@ function AutomationsPage() {
     if (!newExportFolderName.trim()) return;
     try {
       const deliveryId = await getDeliveryId();
-      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newExportFolderName.trim(), delivery_id: deliveryId, company_id: companyId }])
+        .insert([{ name: newExportFolderName.trim(), delivery_id: deliveryId }])
         .select();
       if (error) throw error;
       if (data && data.length > 0) {
