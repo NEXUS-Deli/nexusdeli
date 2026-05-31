@@ -11,11 +11,12 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 3000): Pr
 }
 
 export async function getCompanyId(): Promise<string> {
+  let isSuperAdmin = false;
   try {
     // 1. Fetch current user
     const { data: { user } } = await withTimeout(supabase.auth.getUser());
     if (!user) {
-      return DEFAULT_COMPANY_ID;
+      throw new Error("Usuário não autenticado.");
     }
 
     // 2. Check if user is super admin
@@ -27,7 +28,7 @@ export async function getCompanyId(): Promise<string> {
         .maybeSingle()
     );
 
-    const isSuperAdmin = !!profile?.is_super_admin;
+    isSuperAdmin = !!profile?.is_super_admin;
 
     if (isSuperAdmin) {
       if (typeof window !== "undefined") {
@@ -93,8 +94,15 @@ export async function getCompanyId(): Promise<string> {
     }
   } catch (err) {
     console.error("Critical error or timeout in getCompanyId:", err);
+    if (!isSuperAdmin) {
+      throw new Error("Não foi possível identificar sua empresa. Tente novamente.");
+    }
   }
 
-  return DEFAULT_COMPANY_ID;
+  if (isSuperAdmin) {
+    return DEFAULT_COMPANY_ID;
+  }
+
+  throw new Error("Não foi possível identificar sua empresa. Tente novamente.");
 }
 
