@@ -50,15 +50,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setCompanies([]);
     setActiveCompanyIdState(null);
-    localStorage.removeItem("nexus_active_company_id");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("nexus_active_company_id");
+    }
   };
 
   const setActiveCompanyId = (id: string | null) => {
     setActiveCompanyIdState(id);
     if (id) {
-      localStorage.setItem("nexus_active_company_id", id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("nexus_active_company_id", id);
+      }
     } else {
-      localStorage.removeItem("nexus_active_company_id");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("nexus_active_company_id");
+      }
     }
   };
 
@@ -103,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setCompanies(allCompanies || []);
 
         // Retrieve persisted active company or default to first
-        const savedId = localStorage.getItem("nexus_active_company_id");
+        const savedId = typeof window !== "undefined" ? localStorage.getItem("nexus_active_company_id") : null;
         if (savedId && allCompanies?.some((c) => c.id === savedId)) {
           setActiveCompanyIdState(savedId);
         } else if (allCompanies && allCompanies.length > 0) {
@@ -139,26 +145,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAuth = async () => {
     setLoading(true);
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    setUser(currentUser);
-    if (currentUser) {
-      await loadUserData(currentUser);
-    } else {
-      setProfile(null);
-      setCompanies([]);
-      setActiveCompanyIdState(null);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      if (currentUser) {
+        await loadUserData(currentUser);
+      } else {
+        setProfile(null);
+        setCompanies([]);
+        setActiveCompanyIdState(null);
+      }
+    } catch (err) {
+      console.error("Error in refreshAuth:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    // Check active session on mount
-    refreshAuth();
+    let active = true;
 
-    // Listen to changes
+    // Use getSession to quickly set initial session state without triggering multiple parallel queries
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!active) return;
+        const currentUser = session?.user || null;
+        setUser(currentUser);
+        if (currentUser) {
+          await loadUserData(currentUser);
+        } else {
+          setProfile(null);
+          setCompanies([]);
+          setActiveCompanyIdState(null);
+        }
+      } catch (err) {
+        console.error("Error initializing auth:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen to subsequent changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!active) return;
+      // Skip redundant runs on initial load
+      if (event === "INITIAL_SESSION") return;
+
       const currentUser = session?.user || null;
       setUser(currentUser);
+      
+      setLoading(true);
       if (currentUser) {
         await loadUserData(currentUser);
       } else {
@@ -170,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      active = false;
       subscription.unsubscribe();
     };
   }, []);
