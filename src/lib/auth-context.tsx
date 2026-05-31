@@ -197,7 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user || null;
       setUser(currentUser);
       
-      setLoading(true);
       if (currentUser) {
         await loadUserData(currentUser);
       } else {
