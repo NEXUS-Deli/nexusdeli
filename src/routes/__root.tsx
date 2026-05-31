@@ -40,12 +40,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <div className="max-w-xl text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-2 text-sm text-destructive font-mono bg-destructive/10 p-3 rounded-lg border border-destructive/20 text-left overflow-auto max-h-40">
+          {error?.message || "Unknown error"}
+          {error?.stack && <span className="block mt-2 text-xs opacity-70">{error.stack}</span>}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
