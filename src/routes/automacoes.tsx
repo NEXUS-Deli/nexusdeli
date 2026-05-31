@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/nexus/Sidebar";
 import { Topbar } from "@/components/nexus/Topbar";
 import { supabase } from "@/lib/supabase";
+import { getCompanyId } from "@/lib/company";
+import { triggerN8NWebhook } from "@/services/n8n";
 import { 
   Zap, 
   Percent, 
@@ -86,25 +88,18 @@ function AutomationsPage() {
 
   const location = useLocation();
 
-  const getDeliveryId = async (): Promise<string> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user?.id || "00000000-0000-0000-0000-000000000000";
-    } catch {
-      return "00000000-0000-0000-0000-000000000000";
-    }
-  };
+
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const deliveryId = await getDeliveryId();
+        const companyId = await getCompanyId();
         
         // Instances
         const instancesRes = await supabase
           .from("whatsapp_instances")
           .select("id, name, token")
-          .eq("delivery_id", deliveryId)
+          .eq("company_id", companyId)
           .order("created_at", { ascending: false });
         
         if (!instancesRes.error && instancesRes.data) {
@@ -121,7 +116,7 @@ function AutomationsPage() {
         const foldersRes = await supabase
           .from("folders")
           .select("id, name")
-          .eq("delivery_id", deliveryId)
+          .eq("company_id", companyId)
           .order("created_at", { ascending: true });
           
         if (!foldersRes.error && foldersRes.data) {
@@ -168,21 +163,17 @@ function AutomationsPage() {
 
     try {
       setIsExtracting(true);
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       
-      const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/0c548d15-e025-4521-85a0-8bfe0e93bc00", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const responseData = await triggerN8NWebhook({
+        webhookKey: "extractor",
+        payload: {
           instance: instanceData.name,
           instanceToken: instanceData.token,
-          delivery_id: deliveryId
-        })
+          company_id: companyId,
+          delivery_id: companyId
+        }
       });
-
-      if (!response.ok) throw new Error("Falha na requisição");
-      
-      const responseData = await response.json();
       
       let gruposArray: any[] = [];
       if (Array.isArray(responseData) && responseData[0]?.sucesso) {
@@ -215,24 +206,20 @@ function AutomationsPage() {
     }
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       toast.info(`Iniciando extração de leads do grupo: ${grupo.nome_grupo}...`);
       
-      const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/ff773158-9e44-4c44-8efb-5a0fbcf2cd54", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await triggerN8NWebhook({
+        webhookKey: "import_leads",
+        payload: {
           instance: instanceData.name,
           instanceToken: instanceData.token,
-          delivery_id: deliveryId,
+          company_id: companyId,
+          delivery_id: companyId,
           id_grupo: grupo.id_grupo,
           nome_grupo: grupo.nome_grupo
-        })
+        }
       });
-
-      if (!response.ok) throw new Error("Falha na requisição");
-      
-      const json = await response.json();
       
       let leadsArray: any[] = [];
       if (Array.isArray(json) && json[0]?.sucesso) {
@@ -260,10 +247,10 @@ function AutomationsPage() {
     if (!newFolderName.trim()) return;
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newFolderName.trim(), delivery_id: deliveryId }])
+        .insert([{ name: newFolderName.trim(), company_id: companyId, delivery_id: companyId }])
         .select();
 
       if (error) throw error;
@@ -290,13 +277,14 @@ function AutomationsPage() {
 
     try {
       setIsSavingLeads(true);
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
       const insertPayload = extractedLeads.map(lead => ({
         name: lead.nome || "Lead S/ Nome",
         phone: lead.telefone || "",
         folder_id: targetFolderId,
-        delivery_id: deliveryId,
+        company_id: companyId,
+        delivery_id: companyId,
         total_spent: 0
       }));
 
@@ -333,22 +321,18 @@ function AutomationsPage() {
     try {
       setIsImporting(true);
       setImportedContacts([]);
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       
-      const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/4e395ffa-f900-41c3-a0e9-80b2a3013ec0", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await triggerN8NWebhook({
+        webhookKey: "start_campaign",
+        payload: {
           instance: instanceData.name,
           instanceToken: instanceData.token,
-          delivery_id: deliveryId,
+          company_id: companyId,
+          delivery_id: companyId,
           folder_id: targetFolderId
-        })
+        }
       });
-
-      if (!response.ok) throw new Error("Falha na requisição ao webhook.");
-      
-      const json = await response.json();
       
       let leadsArray: any[] = [];
       if (Array.isArray(json)) {
@@ -367,7 +351,8 @@ function AutomationsPage() {
           name: lead.contact_name || lead.nome || "Contato Importado",
           phone: lead.phone || lead.telefone || "",
           folder_id: targetFolderId,
-          delivery_id: deliveryId,
+          company_id: companyId,
+          delivery_id: companyId,
           total_spent: 0
         }));
 
@@ -408,22 +393,18 @@ function AutomationsPage() {
       setIsExporting(true);
       setExportSuccess(false);
       setExportResult(null);
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
-      const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/a4077c32-1f4b-4837-8ad3-9144e48ce2e3", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await triggerN8NWebhook({
+        webhookKey: "export_leads",
+        payload: {
           instance: instanceData.name,
           instanceToken: instanceData.token,
           folder_id: exportFolderId,
-          delivery_id: deliveryId
-        })
+          company_id: companyId,
+          delivery_id: companyId
+        }
       });
-
-      if (!response.ok) throw new Error("Falha na requisição ao webhook.");
-
-      const json = await response.json();
       const resultData = Array.isArray(json) ? json[0] : json;
 
       if (resultData?.sucesso) {
@@ -454,10 +435,10 @@ function AutomationsPage() {
     e.preventDefault();
     if (!newExportFolderName.trim()) return;
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from("folders")
-        .insert([{ name: newExportFolderName.trim(), delivery_id: deliveryId }])
+        .insert([{ name: newExportFolderName.trim(), company_id: companyId, delivery_id: companyId }])
         .select();
       if (error) throw error;
       if (data && data.length > 0) {
@@ -493,22 +474,18 @@ function AutomationsPage() {
       setIsVerifying(true);
       setVerifyResult(null);
       setNamesUpdated(0);
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
-      const response = await fetch("https://nexus360.infra-conectamarketing.site/webhook/b12d7a71-65d2-4865-8a82-5e84f8b4c9f9", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await triggerN8NWebhook({
+        webhookKey: "other_webhook",
+        payload: {
           instance: instanceData.name,
           instanceToken: instanceData.token,
           folder_id: verifyFolderId,
-          delivery_id: deliveryId
-        })
+          company_id: companyId,
+          delivery_id: companyId
+        }
       });
-
-      if (!response.ok) throw new Error("Falha na requisição ao webhook.");
-
-      const json = await response.json();
       const resultData = Array.isArray(json) ? json[0] : json;
 
       const leadsValidos = resultData?.leads_validos ?? [];

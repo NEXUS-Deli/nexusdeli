@@ -27,6 +27,7 @@ import {
   type UazapiInstance,
 } from "@/services/uazapi";
 import { supabase } from "@/lib/supabase";
+import { getCompanyId } from "@/lib/company";
 
 export const Route = createFileRoute("/whatsapp")({
   component: WhatsappPage,
@@ -57,29 +58,20 @@ function WhatsappPage() {
   // Polling ref para parar quando necessário
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Auxiliar para pegar o delivery_id do usuário logado ───────────────────
-  const getDeliveryId = async (): Promise<string> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      // Retorna o ID real do Supabase ou um ID fallback para desenvolvimento local
-      return user?.id || "00000000-0000-0000-0000-000000000000";
-    } catch {
-      return "00000000-0000-0000-0000-000000000000";
-    }
-  };
+
 
   // ─── Carregar instâncias cadastradas no Supabase e buscar status real na UAZAPI ───
   const loadInstances = useCallback(async () => {
     setIsLoadingList(true);
     setIsDbError(false);
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
-      // 1. Busca no banco de dados local (Supabase) filtrando estritamente pelo delivery_id (Isolamento Multi-tenant)
+      // 1. Busca no banco de dados local (Supabase) filtrando estritamente pelo company_id (Isolamento Multi-tenant)
       const { data: dbInstances, error } = await supabase
         .from("whatsapp_instances")
         .select("*")
-        .eq("delivery_id", deliveryId)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -179,20 +171,21 @@ function WhatsappPage() {
     setModalError("");
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
       // 1. Criar a instância no UAZAPI
       const created = await createInstance(instanceName.trim());
       const token = created.token;
       setNewInstanceToken(token);
 
-      // 2. Persistir a instância no Supabase vinculada ao delivery_id
+      // 2. Persistir a instância no Supabase vinculada ao company_id
       const { error: dbError } = await supabase.from("whatsapp_instances").insert([
         {
           id: created.instance.id,
           name: instanceName.trim(),
           token: token,
-          delivery_id: deliveryId,
+          company_id: companyId,
+          delivery_id: companyId,
           status: "disconnected",
         },
       ]);
@@ -265,14 +258,14 @@ function WhatsappPage() {
     if (!confirmed) return;
 
     try {
-      const deliveryId = await getDeliveryId();
+      const companyId = await getCompanyId();
 
-      // 1. Remover do Supabase primeiro (estritamente protegida por delivery_id)
+      // 1. Remover do Supabase primeiro (estritamente protegida por company_id)
       const { error: dbError } = await supabase
         .from("whatsapp_instances")
         .delete()
         .eq("id", inst.id)
-        .eq("delivery_id", deliveryId);
+        .eq("company_id", companyId);
 
       if (dbError) {
         throw new Error(`Erro ao remover do banco de dados: ${dbError.message}`);

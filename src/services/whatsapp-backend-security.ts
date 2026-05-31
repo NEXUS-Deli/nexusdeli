@@ -14,7 +14,8 @@ interface DbWhatsappInstance {
   id: string; // ID gerado pela UAZAPI ou gerado localmente
   name: string;
   token: string;
-  delivery_id: string; // Chave estrangeira que identifica o Tenant (Dono da conta)
+  company_id: string; // Identificador da Empresa (Multi-tenant)
+  delivery_id?: string; // Legado
   created_at: Date;
 }
 
@@ -26,12 +27,13 @@ interface DbWhatsappInstance {
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
-    deliveryId: string; // Tenant ID associado a este usuário
+    companyId: string; // Tenant ID associado a este usuário
+    deliveryId?: string; // Legado
   };
 }
 
 /**
- * Middleware para validar se a instância solicitada pertence ao delivery_id do usuário logado.
+ * Middleware para validar se a instância solicitada pertence ao company_id do usuário logado.
  * Evita ataques de manipulação de parâmetros (IDOR).
  */
 export async function validateInstanceOwnership(
@@ -39,10 +41,10 @@ export async function validateInstanceOwnership(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const deliveryId = req.user?.deliveryId;
+  const companyId = req.user?.companyId;
   const { instanceId } = req.params;
 
-  if (!deliveryId) {
+  if (!companyId) {
     res.status(401).json({ error: "Não autenticado." });
     return;
   }
@@ -55,8 +57,8 @@ export async function validateInstanceOwnership(
   try {
     // Busca a instância no banco local para verificar a propriedade
     const result = await db.query<DbWhatsappInstance>(
-      "SELECT * FROM whatsapp_instances WHERE id = $1 AND delivery_id = $2",
-      [instanceId, deliveryId]
+      "SELECT * FROM whatsapp_instances WHERE id = $1 AND company_id = $2",
+      [instanceId, companyId]
     );
 
     if (result.rowCount === 0) {
@@ -77,14 +79,14 @@ export async function validateInstanceOwnership(
 // ─── SERVIÇO DE INTEGRAÇÃO (WHATSAPP SERVICE) ──────────────────────────────────
 export class WhatsappBackendService {
   /**
-   * Lista apenas as instâncias de um delivery (tenant) específico
+   * Lista apenas as instâncias de uma empresa (company) específica
    * e consulta em lote/sequência o status na UAZAPI de forma segura.
    */
-  static async listInstances(deliveryId: string) {
-    // 1. Busca apenas as instâncias cadastradas para o delivery no banco local
+  static async listInstances(companyId: string) {
+    // 1. Busca apenas as instâncias cadastradas para a empresa no banco local
     const queryResult = await db.query<DbWhatsappInstance>(
-      "SELECT id, name, token, delivery_id FROM whatsapp_instances WHERE delivery_id = $1 ORDER BY created_at DESC",
-      [deliveryId]
+      "SELECT id, name, token, company_id, delivery_id FROM whatsapp_instances WHERE company_id = $1 ORDER BY created_at DESC",
+      [companyId]
     );
 
     const dbInstances = queryResult.rows;
@@ -140,9 +142,9 @@ export class WhatsappBackendService {
   }
 
   /**
-   * Cria a instância na UAZAPI e salva o registro associado ao deliveryId
+   * Cria a instância na UAZAPI e salva o registro associado ao companyId
    */
-  static async createInstance(deliveryId: string, name: string) {
+  static async createInstance(companyId: string, name: string) {
     // 1. Cria a instância na UAZAPI usando o Token de Administrador
     const response = await fetch(`${UAZAPI_BASE_URL}/instance/create`, {
       method: "POST",
@@ -161,12 +163,12 @@ export class WhatsappBackendService {
     const uazResult = await response.json();
     const { token, instance } = uazResult; // token da instância e objeto de retorno
 
-    // 2. Salva no banco de dados local associando ao delivery_id
+    // 2. Salva no banco de dados local associando ao company_id e delivery_id (legado)
     const insertResult = await db.query<DbWhatsappInstance>(
-      `INSERT INTO whatsapp_instances (id, name, token, delivery_id)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, token, delivery_id`,
-      [instance.id, name, token, deliveryId]
+      `INSERT INTO whatsapp_instances (id, name, token, company_id, delivery_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, token, company_id, delivery_id`,
+      [instance.id, name, token, companyId, companyId]
     );
 
     return insertResult.rows[0];
@@ -201,14 +203,14 @@ export class WhatsappBackendController {
    * Endpoint: GET /api/whatsapp/instances
    */
   static async getInstances(req: AuthenticatedRequest, res: Response) {
-    const deliveryId = req.user?.deliveryId;
+    const companyId = req.user?.companyId;
 
-    if (!deliveryId) {
+    if (!companyId) {
       return res.status(401).json({ error: "Sessão inválida ou não autenticado." });
     }
 
     try {
-      const instances = await WhatsappBackendService.listInstances(deliveryId);
+      const instances = await WhatsappBackendService.listInstances(companyId);
       return res.status(200).json(instances);
     } catch (error) {
       console.error("Erro no controller getInstances:", error);
@@ -220,10 +222,10 @@ export class WhatsappBackendController {
    * Endpoint: POST /api/whatsapp/instances
    */
   static async createInstance(req: AuthenticatedRequest, res: Response) {
-    const deliveryId = req.user?.deliveryId;
+    const companyId = req.user?.companyId;
     const { name } = req.body;
 
-    if (!deliveryId) {
+    if (!companyId) {
       return res.status(401).json({ error: "Sessão inválida ou não autenticado." });
     }
 
@@ -232,7 +234,7 @@ export class WhatsappBackendController {
     }
 
     try {
-      const newInstance = await WhatsappBackendService.createInstance(deliveryId, name);
+      const newInstance = await WhatsappBackendService.createInstance(companyId, name);
       return res.status(201).json(newInstance);
     } catch (error) {
       console.error("Erro no controller createInstance:", error);
