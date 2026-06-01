@@ -116,6 +116,7 @@ const cardapioTheme = {
 
 function Cardapio() {
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [addons, setAddons] = useState<AddonRow[]>([]);
@@ -192,6 +193,7 @@ function Cardapio() {
   }
 
   useEffect(() => {
+    setMounted(true);
     loadData();
   }, [slug]);
 
@@ -451,6 +453,36 @@ function Cardapio() {
     ]);
     toast.success(`${product.name} adicionado!`);
   };
+
+  if (!mounted) {
+    return (
+      <div style={cardapioTheme} className="min-h-screen bg-[#FAFAFA]">
+        <div className="max-w-lg mx-auto px-4 pt-6">
+          <div className="animate-pulse space-y-3 mb-6">
+            <div className="h-5 w-40 bg-[#E8E8E8] rounded-lg" />
+            <div className="h-3 w-28 bg-[#E8E8E8] rounded-lg" />
+          </div>
+          <div className="animate-pulse flex gap-2 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-9 w-20 bg-[#E8E8E8] rounded-full" />
+            ))}
+          </div>
+          <div className="animate-pulse grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-3xl bg-white overflow-hidden shadow-[0_4px_12px_-8px_rgba(0,0,0,0.12)]">
+                <div className="aspect-square bg-[#E8E8E8]" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-[#E8E8E8] rounded" />
+                  <div className="h-3 w-1/2 bg-[#E8E8E8] rounded" />
+                  <div className="h-4 w-1/3 bg-[#E8E8E8] rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (hasError) {
     return (
