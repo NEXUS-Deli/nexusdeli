@@ -1,4 +1,4 @@
-import { validateUserAndCompany } from "./_auth";
+import { validateUserAndCompany } from "./_auth.js";
 
 const BASE_URL = process.env.UAZAPI_BASE_URL || "https://nexus-360.uazapi.com";
 const ADMIN_TOKEN = process.env.UAZAPI_ADMIN_TOKEN || "";

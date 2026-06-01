@@ -1,4 +1,4 @@
-import { validateInstanceAccess } from "./_auth";
+import { validateInstanceAccess } from "./_auth.js";
 
 const BASE_URL = process.env.UAZAPI_BASE_URL || "https://nexus-360.uazapi.com";
 
