@@ -58,7 +58,49 @@ function WhatsappPage() {
   // Polling ref para parar quando necessário
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Phone configuration state
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
 
+  const loadCompanyPhone = useCallback(async () => {
+    try {
+      const companyId = await getCompanyId();
+      const { data, error } = await supabase
+        .from("companies")
+        .select("phone")
+        .eq("id", companyId)
+        .single();
+      if (error) throw error;
+      if (data) {
+        setCompanyPhone(data.phone || "");
+      }
+    } catch (err) {
+      console.error("Erro ao carregar telefone da empresa:", err);
+    }
+  }, []);
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPhone(true);
+    try {
+      const companyId = await getCompanyId();
+      let cleaned = companyPhone.replace(/\D/g, ""); // Apenas números
+      if (cleaned.startsWith("55") && cleaned.length > 10) {
+        cleaned = cleaned.slice(2);
+      }
+      const { error } = await supabase
+        .from("companies")
+        .update({ phone: cleaned || null })
+        .eq("id", companyId);
+
+      if (error) throw error;
+      toast.success("WhatsApp de atendimento atualizado com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar telefone.");
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
 
   // ─── Carregar instâncias cadastradas no Supabase e buscar status real na UAZAPI ───
   const loadInstances = useCallback(async () => {
@@ -131,7 +173,8 @@ function WhatsappPage() {
 
   useEffect(() => {
     loadInstances();
-  }, [loadInstances]);
+    loadCompanyPhone();
+  }, [loadInstances, loadCompanyPhone]);
 
   // ─── Cleanup polling ao desmontar ──────────────────────────────────────────
   useEffect(() => {
@@ -391,6 +434,44 @@ function WhatsappPage() {
                   <div className="text-xl font-bold mt-0.5">{totalInstances}</div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* WhatsApp de Atendimento Card */}
+          <section className="rounded-2xl border border-border bg-gradient-surface p-5 shadow-card relative overflow-hidden">
+            <div className="grid-bg absolute inset-0 opacity-15" />
+            <div className="relative">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Smartphone className="h-3 w-3 text-primary" />
+                WhatsApp do Atendimento (Direcionamento)
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl leading-relaxed">
+                Configure o número de WhatsApp para onde os clientes do cardápio online serão redirecionados ao finalizarem o pedido.
+              </p>
+              
+              <form onSubmit={handleSavePhone} className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-md">
+                <div className="relative flex-1">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">+55</span>
+                  <input
+                    type="text"
+                    placeholder="DDD + Número (ex: 11999998888)"
+                    value={companyPhone}
+                    onChange={(e) => setCompanyPhone(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-2.5 text-sm outline-none focus:border-primary/60 transition-colors font-mono"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSavingPhone}
+                  className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSavingPhone ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Salvar Número"
+                  )}
+                </button>
+              </form>
             </div>
           </section>
 
