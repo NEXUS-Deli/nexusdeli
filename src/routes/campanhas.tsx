@@ -187,7 +187,7 @@ function CampaignsPage() {
       if (err?.code === "42P01" || err?.message?.includes("relation")) {
         setIsDbError(true);
       } else {
-        toast.error("Erro ao conectar com o banco de dados do Supabase.");
+        toast.error(`Erro ao conectar com o Supabase: ${err?.message || err}`);
       }
       setCampaigns([]);
     } finally {
