@@ -1,5 +1,6 @@
 import { getSupabaseServiceRole } from "../uazapi/_auth.js";
 import { generateReceiptText, generateReceiptHtml } from "../../src/lib/receipt";
+import { randomUUID } from "crypto";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -84,7 +85,7 @@ export default async function handler(req: any, res: any) {
     const total = subtotal + deliveryFee;
     const profitTotal = total - costTotal;
 
-    const checkoutToken = crypto.randomUUID();
+    const checkoutToken = randomUUID();
 
     // Obter o próximo número do pedido
     const { data: lastOrder } = await supabase
@@ -322,8 +323,8 @@ export default async function handler(req: any, res: any) {
 
     // 7. Registrar evento de tracking (Purchase)
     if (sessionId) {
-      const eventId = crypto.randomUUID();
-      const uniqueEventId = crypto.randomUUID();
+      const eventId = randomUUID();
+      const uniqueEventId = randomUUID();
       await supabase.from("tracking_events").insert({
         id: eventId,
         session_id: sessionId,
