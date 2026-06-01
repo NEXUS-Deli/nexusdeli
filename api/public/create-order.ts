@@ -525,24 +525,31 @@ export default async function handler(req: any, res: any) {
     if (sessionId) {
       const eventId = randomUUID();
       const uniqueEventId = randomUUID();
-      await supabase.from("tracking_events").insert({
-        id: eventId,
-        session_id: sessionId,
-        company_id: companyId,
-        event_name: "Purchase",
-        order_id: order.id,
-        client_id: resolvedClientToken || null,
-        value: total,
-        currency: "BRL",
-        metadata: {
-          customer: {
-            name: customer.name,
-            phone: customer.phone,
-          }
-        },
-        event_id: uniqueEventId,
-        session_key: sessionKey || null,
-      }).catch((e) => console.error("Erro ao registrar tracking Purchase backend:", e));
+      try {
+        const { error: trackingErr } = await supabase.from("tracking_events").insert({
+          id: eventId,
+          session_id: sessionId,
+          company_id: companyId,
+          event_name: "Purchase",
+          order_id: order.id,
+          client_id: resolvedClientToken || null,
+          value: total,
+          currency: "BRL",
+          metadata: {
+            customer: {
+              name: customer.name,
+              phone: customer.phone,
+            }
+          },
+          event_id: uniqueEventId,
+          session_key: sessionKey || null,
+        });
+        if (trackingErr) {
+          console.error("Erro ao registrar tracking Purchase backend:", trackingErr.message, trackingErr.details);
+        }
+      } catch (e: any) {
+        console.error("Erro ao registrar tracking Purchase backend:", e.message || e);
+      }
     }
 
     // Gerar mensagem do WhatsApp
