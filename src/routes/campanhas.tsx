@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getCompanyId } from "@/lib/company";
 import { triggerN8NWebhook } from "@/services/n8n";
+import { formatDateTimeBR } from "@/lib/date";
 
 const searchSchema = z.object({
   new: z.boolean().optional(),
@@ -68,6 +69,7 @@ interface CampaignRow {
   msg_delay?: number;
   media_url?: string;
   instance_token?: string;
+  created_at?: string;
 }
 
 interface WhatsappInstanceRow {
@@ -729,7 +731,9 @@ function CampaignsPage() {
                                     </span>
                                   </td>
                                   <td className="text-muted-foreground py-4">
-                                    <div className="text-xs text-foreground font-medium">{c.date}</div>
+                                    <div className="text-xs text-foreground font-medium">
+                                      {c.created_at ? formatDateTimeBR(c.created_at) : c.date}
+                                    </div>
                                     <div className="flex items-center gap-2 mt-2 max-w-[150px]">
                                       <div className="h-1.5 w-full bg-background border border-border rounded-full overflow-hidden">
                                         <div

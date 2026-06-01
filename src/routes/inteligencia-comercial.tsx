@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
+import { formatDateTimeBR } from "@/lib/date";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/nexus/Sidebar";
@@ -398,7 +399,7 @@ function InteligenciaComercialPage() {
                       {capiLogs.map((log) => (
                         <tr key={log.id} className="hover:bg-accent/20 transition-colors">
                           <td className="py-2.5 text-muted-foreground font-mono">
-                            {new Date(log.created_at).toLocaleString("pt-BR")}
+                            {formatDateTimeBR(log.created_at)}
                           </td>
                           <td className="py-2.5 font-semibold text-foreground uppercase tracking-wider text-[10px]">
                             {log.provider}

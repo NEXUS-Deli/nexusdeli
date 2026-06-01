@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getCompanyId } from "@/lib/company";
 import { updateOrderStatus } from "@/lib/orders";
+import { formatDateTimeBR } from "@/lib/date";
 
 export const Route = createFileRoute("/pedidos")({
   component: OrdersPage,
@@ -338,7 +339,6 @@ function OrdersPage() {
                       const StatusIcon = statusInfo.icon;
                       const items = order.order_items || [];
                       const itemsCount = items.reduce((sum, i) => sum + i.quantity, 0);
-                      const timeAgo = getTimeAgo(order.created_at);
 
                       return (
                         <motion.tr
@@ -350,7 +350,7 @@ function OrdersPage() {
                         >
                           <td className="px-5 py-4">
                             <div className="font-bold text-primary">#{order.order_number}</div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{timeAgo}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{formatDateTimeBR(order.created_at)}</div>
                           </td>
                           <td>
                             <div className="font-semibold">{order.customers?.name || "---"}</div>

@@ -16,6 +16,13 @@ export default defineConfig({
         outputPath: "index.html"
       }
     }
+  },
+  vite: {
+    mode: "development",
+    build: {
+      minify: false,
+      sourcemap: true,
+    }
   }
 });
 

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getCompanyId } from "@/lib/company";
 import { markPrintJobAsPrinted, markPrintJobAsPrinting, markPrintJobError } from "@/lib/orders";
+import { formatDateTimeBR } from "@/lib/date";
 
 export const Route = createFileRoute("/fila-impressao")({
   component: PrintQueuePage,
@@ -250,7 +251,7 @@ function PrintQueuePage() {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {new Date(job.created_at).toLocaleString("pt-BR")}
+                        {formatDateTimeBR(job.created_at)}
                         {job.retry_count > 0 && ` · Tentativas: ${job.retry_count}`}
                       </div>
                       {job.status === "erro" && job.error_message && (
