@@ -30,8 +30,8 @@ export type CreateOrderInput = {
   notes?: string;
 };
 
-export async function createOrder(input: CreateOrderInput) {
-  const companyId = await getCompanyId();
+export async function createOrder(input: CreateOrderInput & { companyId?: string }) {
+  const companyId = input.companyId || await getCompanyId();
 
   const { data: company } = await supabase
     .from("companies")

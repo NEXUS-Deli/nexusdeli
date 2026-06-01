@@ -3,13 +3,20 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { Loader2, Flame } from "lucide-react";
 
+const isPublicRoute = (pathname: string) => {
+  return pathname === "/cardapio"
+    || pathname.startsWith("/cardapio/")
+    || pathname === "/login"
+    || pathname.startsWith("/checkout/")
+    || pathname.startsWith("/pedido/");
+};
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, companies, loading, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const publicRoutes = ["/login", "/criar-conta", "/esqueci-senha", "/redefinir-senha"];
-  const isPublicRoute = publicRoutes.includes(location.pathname);
+  const publicRouteActive = isPublicRoute(location.pathname);
 
   const isSuperAdmin = !!profile?.is_super_admin;
   const hasCompany = companies && companies.length > 0;
@@ -17,24 +24,24 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    if (!user) {
-      if (!isPublicRoute) {
-        navigate({ to: "/login" });
-      }
+    // Public routes don't require login checks or dashboard routing
+    if (publicRouteActive) {
       return;
     }
 
-    // User is logged in
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
+    }
+
+    // User is logged in (for non-public routes)
     if (profile?.status !== "active") {
-      // Allow them to login page or stay here to see inactive message
+      // Allow them to see the inactive message
       return;
     }
 
     if (isSuperAdmin) {
-      // Super admin can access anything except public routes
-      if (isPublicRoute) {
-        navigate({ to: "/super-admin" });
-      }
+      // Super admin is allowed in everything (no redirect)
       return;
     }
 
@@ -45,11 +52,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     } else {
       // Has company, block admin-only routes and aguardando-vinculo
-      if (location.pathname === "/aguardando-vinculo" || location.pathname === "/super-admin" || isPublicRoute) {
+      if (location.pathname === "/aguardando-vinculo" || location.pathname === "/super-admin") {
         navigate({ to: "/dashboard" });
       }
     }
-  }, [user, profile, companies, loading, location.pathname, navigate, isPublicRoute, isSuperAdmin, hasCompany]);
+  }, [user, profile, companies, loading, location.pathname, navigate, publicRouteActive, isSuperAdmin, hasCompany]);
 
   if (loading) {
     return (
@@ -65,8 +72,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Handle inactive user screen
-  if (user && profile?.status !== "active" && !isPublicRoute) {
+  // Handle inactive user screen (only on non-public routes!)
+  if (user && profile?.status !== "active" && !publicRouteActive) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 text-foreground">
         <div className="w-full max-w-md rounded-2xl border border-destructive/20 bg-gradient-surface p-6 text-center shadow-glow">

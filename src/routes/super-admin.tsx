@@ -19,6 +19,7 @@ import {
   X,
   Shield,
   Trash2,
+  Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -91,8 +92,19 @@ function SuperAdminPage() {
   const [companyMembers, setCompanyMembers] = useState<CompanyUser[]>([]);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [selectedUserIdToLink, setSelectedUserIdToLink] = useState("");
   const [linkingRole, setLinkingRole] = useState("operator");
+  const [selectedUserIdToLink, setSelectedUserIdToLink] = useState("");
+
+  // Tracking settings states
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [trackingCompany, setTrackingCompany] = useState<Company | null>(null);
+  const [metaPixelId, setMetaPixelId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaTestEventCode, setMetaTestEventCode] = useState("");
+  const [metaEnabled, setMetaEnabled] = useState(false);
+  const [capiEnabled, setCapiEnabled] = useState(false);
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [loadingTracking, setLoadingTracking] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -320,6 +332,66 @@ function SuperAdminPage() {
     }
   };
 
+  const openTrackingSettings = async (company: Company) => {
+    setTrackingCompany(company);
+    setShowTrackingModal(true);
+    setLoadingTracking(true);
+    setMetaPixelId("");
+    setMetaAccessToken("");
+    setMetaTestEventCode("");
+    setMetaEnabled(false);
+    setCapiEnabled(false);
+    try {
+      const { data, error } = await supabase
+        .from("company_tracking_settings")
+        .select("*")
+        .eq("company_id", company.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setMetaPixelId(data.meta_pixel_id || "");
+        setMetaAccessToken(data.meta_access_token || "");
+        setMetaTestEventCode(data.meta_test_event_code || "");
+        setMetaEnabled(data.meta_enabled || false);
+        setCapiEnabled(data.capi_enabled || false);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao carregar configurações de rastreamento.");
+    } finally {
+      setLoadingTracking(false);
+    }
+  };
+
+  const saveTrackingSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackingCompany) return;
+
+    setSavingTracking(true);
+    try {
+      const { error } = await supabase
+        .from("company_tracking_settings")
+        .upsert({
+          company_id: trackingCompany.id,
+          meta_pixel_id: metaPixelId.trim() || null,
+          meta_access_token: metaAccessToken.trim() || null,
+          meta_test_event_code: metaTestEventCode.trim() || null,
+          meta_enabled: metaEnabled,
+          capi_enabled: capiEnabled,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      toast.success("Configurações de rastreamento salvas com sucesso!");
+      setShowTrackingModal(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar configurações de rastreamento.");
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-background text-foreground">
       <Sidebar />
@@ -435,6 +507,14 @@ function SuperAdminPage() {
                             >
                               <UserPlus className="h-3.5 w-3.5" />
                               Usuários
+                            </button>
+                            <button
+                              onClick={() => openTrackingSettings(company)}
+                              className="h-8 px-2.5 rounded-lg border border-border inline-flex items-center gap-1.5 hover:bg-accent cursor-pointer text-xs font-medium transition-colors"
+                              title="Configurações de Rastreamento (Meta)"
+                            >
+                              <Target className="h-3.5 w-3.5" />
+                              Integrações
                             </button>
                           </div>
                         </td>
@@ -646,6 +726,121 @@ function SuperAdminPage() {
                   )}
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Manage Tracking Settings Modal */}
+      <AnimatePresence>
+        {showTrackingModal && trackingCompany && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-glow overflow-hidden"
+            >
+              <form onSubmit={saveTrackingSettings} className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-bold">Configurações de Analytics</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Empresa: {trackingCompany.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTrackingModal(false)}
+                    className="h-8 w-8 rounded-xl border border-border grid place-items-center hover:bg-accent cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {loadingTracking ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">Meta Pixel ID</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 1234567890"
+                        value={metaPixelId}
+                        onChange={(e) => setMetaPixelId(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary/60"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">Meta Access Token (CAPI)</label>
+                      <textarea
+                        rows={3}
+                        placeholder="EAABw..."
+                        value={metaAccessToken}
+                        onChange={(e) => setMetaAccessToken(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary/60 resize-none font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">Meta Test Event Code (opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: TEST12345"
+                        value={metaTestEventCode}
+                        onChange={(e) => setMetaTestEventCode(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary/60"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2 border-t border-b border-border/60">
+                      <div>
+                        <div className="text-xs font-semibold text-foreground">Habilitar Meta Pixel (Browser)</div>
+                        <div className="text-[10px] text-muted-foreground">Rastrear eventos via navegador</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={metaEnabled}
+                        onChange={(e) => setMetaEnabled(e.target.checked)}
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2 border-b border-border/60">
+                      <div>
+                        <div className="text-xs font-semibold text-foreground">Habilitar Conversions API (CAPI)</div>
+                        <div className="text-[10px] text-muted-foreground">Enviar evento de Purchase via servidor</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={capiEnabled}
+                        onChange={(e) => setCapiEnabled(e.target.checked)}
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-border flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowTrackingModal(false)}
+                        className="rounded-xl border border-border bg-background hover:bg-accent px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingTracking}
+                        className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-glow hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {savingTracking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        Salvar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </form>
             </motion.div>
           </div>
         )}

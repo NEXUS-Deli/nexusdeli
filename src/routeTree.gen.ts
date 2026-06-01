@@ -16,6 +16,7 @@ import { Route as PromocoesRouteImport } from './routes/promocoes'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as PedidosRouteImport } from './routes/pedidos'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InteligenciaComercialRouteImport } from './routes/inteligencia-comercial'
 import { Route as FilaImpressaoRouteImport } from './routes/fila-impressao'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -29,6 +30,7 @@ import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AguardandoVinculoRouteImport } from './routes/aguardando-vinculo'
 import { Route as AgentesIaRouteImport } from './routes/agentes-ia'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CardapioSlugRouteImport } from './routes/cardapio.$slug'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -63,6 +65,11 @@ const PedidosRoute = PedidosRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InteligenciaComercialRoute = InteligenciaComercialRouteImport.update({
+  id: '/inteligencia-comercial',
+  path: '/inteligencia-comercial',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FilaImpressaoRoute = FilaImpressaoRouteImport.update({
@@ -130,6 +137,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CardapioSlugRoute = CardapioSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CardapioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,7 +149,7 @@ export interface FileRoutesByFullPath {
   '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
-  '/cardapio': typeof CardapioRoute
+  '/cardapio': typeof CardapioRouteWithChildren
   '/clientes': typeof ClientesRoute
   '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
@@ -145,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/inteligencia-comercial': typeof InteligenciaComercialRoute
   '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
@@ -152,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
+  '/cardapio/$slug': typeof CardapioSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -159,7 +173,7 @@ export interface FileRoutesByTo {
   '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
-  '/cardapio': typeof CardapioRoute
+  '/cardapio': typeof CardapioRouteWithChildren
   '/clientes': typeof ClientesRoute
   '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
@@ -167,6 +181,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/inteligencia-comercial': typeof InteligenciaComercialRoute
   '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
@@ -174,6 +189,7 @@ export interface FileRoutesByTo {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
+  '/cardapio/$slug': typeof CardapioSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -182,7 +198,7 @@ export interface FileRoutesById {
   '/aguardando-vinculo': typeof AguardandoVinculoRoute
   '/automacoes': typeof AutomacoesRoute
   '/campanhas': typeof CampanhasRoute
-  '/cardapio': typeof CardapioRoute
+  '/cardapio': typeof CardapioRouteWithChildren
   '/clientes': typeof ClientesRoute
   '/comercial': typeof ComercialRoute
   '/configuracoes': typeof ConfiguracoesRoute
@@ -190,6 +206,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/fila-impressao': typeof FilaImpressaoRoute
+  '/inteligencia-comercial': typeof InteligenciaComercialRoute
   '/login': typeof LoginRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRoute
@@ -197,6 +214,7 @@ export interface FileRoutesById {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/super-admin': typeof SuperAdminRoute
   '/whatsapp': typeof WhatsappRoute
+  '/cardapio/$slug': typeof CardapioSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -214,6 +232,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/esqueci-senha'
     | '/fila-impressao'
+    | '/inteligencia-comercial'
     | '/login'
     | '/pedidos'
     | '/produtos'
@@ -221,6 +240,7 @@ export interface FileRouteTypes {
     | '/redefinir-senha'
     | '/super-admin'
     | '/whatsapp'
+    | '/cardapio/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -236,6 +256,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/esqueci-senha'
     | '/fila-impressao'
+    | '/inteligencia-comercial'
     | '/login'
     | '/pedidos'
     | '/produtos'
@@ -243,6 +264,7 @@ export interface FileRouteTypes {
     | '/redefinir-senha'
     | '/super-admin'
     | '/whatsapp'
+    | '/cardapio/$slug'
   id:
     | '__root__'
     | '/'
@@ -258,6 +280,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/esqueci-senha'
     | '/fila-impressao'
+    | '/inteligencia-comercial'
     | '/login'
     | '/pedidos'
     | '/produtos'
@@ -265,6 +288,7 @@ export interface FileRouteTypes {
     | '/redefinir-senha'
     | '/super-admin'
     | '/whatsapp'
+    | '/cardapio/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,7 +297,7 @@ export interface RootRouteChildren {
   AguardandoVinculoRoute: typeof AguardandoVinculoRoute
   AutomacoesRoute: typeof AutomacoesRoute
   CampanhasRoute: typeof CampanhasRoute
-  CardapioRoute: typeof CardapioRoute
+  CardapioRoute: typeof CardapioRouteWithChildren
   ClientesRoute: typeof ClientesRoute
   ComercialRoute: typeof ComercialRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
@@ -281,6 +305,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   FilaImpressaoRoute: typeof FilaImpressaoRoute
+  InteligenciaComercialRoute: typeof InteligenciaComercialRoute
   LoginRoute: typeof LoginRoute
   PedidosRoute: typeof PedidosRoute
   ProdutosRoute: typeof ProdutosRoute
@@ -339,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inteligencia-comercial': {
+      id: '/inteligencia-comercial'
+      path: '/inteligencia-comercial'
+      fullPath: '/inteligencia-comercial'
+      preLoaderRoute: typeof InteligenciaComercialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fila-impressao': {
@@ -432,8 +464,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cardapio/$slug': {
+      id: '/cardapio/$slug'
+      path: '/$slug'
+      fullPath: '/cardapio/$slug'
+      preLoaderRoute: typeof CardapioSlugRouteImport
+      parentRoute: typeof CardapioRoute
+    }
   }
 }
+
+interface CardapioRouteChildren {
+  CardapioSlugRoute: typeof CardapioSlugRoute
+}
+
+const CardapioRouteChildren: CardapioRouteChildren = {
+  CardapioSlugRoute: CardapioSlugRoute,
+}
+
+const CardapioRouteWithChildren = CardapioRoute._addFileChildren(
+  CardapioRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -441,7 +492,7 @@ const rootRouteChildren: RootRouteChildren = {
   AguardandoVinculoRoute: AguardandoVinculoRoute,
   AutomacoesRoute: AutomacoesRoute,
   CampanhasRoute: CampanhasRoute,
-  CardapioRoute: CardapioRoute,
+  CardapioRoute: CardapioRouteWithChildren,
   ClientesRoute: ClientesRoute,
   ComercialRoute: ComercialRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
@@ -449,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EsqueciSenhaRoute: EsqueciSenhaRoute,
   FilaImpressaoRoute: FilaImpressaoRoute,
+  InteligenciaComercialRoute: InteligenciaComercialRoute,
   LoginRoute: LoginRoute,
   PedidosRoute: PedidosRoute,
   ProdutosRoute: ProdutosRoute,

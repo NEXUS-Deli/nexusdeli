@@ -1,4 +1,4 @@
-import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone, Shield, Presentation } from "lucide-react";
+import { LayoutDashboard, Megaphone, Bot, MessageCircle, Users, Zap, Settings, Flame, Percent, ShoppingBag, Printer, Package, Smartphone, Shield, Presentation, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +8,7 @@ const baseNav = [
   { icon: ShoppingBag, label: "Pedidos", to: "/pedidos" },
   { icon: Printer, label: "Impressão", to: "/fila-impressao" },
   { icon: Megaphone, label: "Campanhas", to: "/campanhas" },
+  { icon: BarChart3, label: "Inteligência Comercial", to: "/inteligencia-comercial" },
   { icon: Percent, label: "Promoções", to: "/promocoes" },
   { icon: Package, label: "Produtos", to: "/produtos" },
   { icon: MessageCircle, label: "WhatsApp", to: "/whatsapp" },
