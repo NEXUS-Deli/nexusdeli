@@ -199,6 +199,7 @@ function Cardapio() {
 
   useEffect(() => {
     if (selectedProduct && companyId) {
+      console.log("[Tracking] Disparando ViewContent para o produto:", selectedProduct.name, "companyId:", companyId);
       TrackingService.trackEvent(companyId, {
         eventName: "ViewContent",
         productId: selectedProduct.id,
@@ -337,6 +338,7 @@ function Cardapio() {
 
     if (companyId) {
       const price = product.promotional_price || product.price;
+      console.log("[Tracking] Disparando AddToCart para o produto:", product.name, "companyId:", companyId);
       TrackingService.trackEvent(companyId, {
         eventName: "AddToCart",
         productId: product.id,
@@ -451,6 +453,15 @@ function Cardapio() {
         addons: [],
       },
     ]);
+    if (companyId) {
+      const price = product.promotional_price || product.price;
+      console.log("[Tracking] Disparando AddToCart (QuickAdd) para o produto:", product.name, "companyId:", companyId);
+      TrackingService.trackEvent(companyId, {
+        eventName: "AddToCart",
+        productId: product.id,
+        value: price,
+      }).catch((err) => console.error("Track AddToCart err:", err));
+    }
     toast.success(`${product.name} adicionado!`);
   };
 
