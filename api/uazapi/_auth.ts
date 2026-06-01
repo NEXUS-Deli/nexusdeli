@@ -1,9 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+let supabaseInstance: any = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export function getSupabase() {
+  if (supabaseInstance) return supabaseInstance;
+
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE;
+
+  if (!url || !anonKey) {
+    throw new Error("Missing Supabase URL or Key");
+  }
+
+  supabaseInstance = createClient(url, anonKey);
+  return supabaseInstance;
+}
 
 export async function validateUserAndCompany(req: any, res: any, companyId: string) {
   try {
@@ -24,6 +35,7 @@ export async function validateUserAndCompany(req: any, res: any, companyId: stri
       return null;
     }
 
+    const supabase = getSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       res.status(401).json({ error: "Unauthorized" });
@@ -79,6 +91,7 @@ export async function validateInstanceAccess(req: any, res: any, instanceToken: 
       return null;
     }
 
+    const supabase = getSupabase();
     const { data: instanceRow, error: dbError } = await supabase
       .from("whatsapp_instances")
       .select("company_id")

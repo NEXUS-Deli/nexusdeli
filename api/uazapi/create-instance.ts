@@ -1,9 +1,13 @@
+console.log("UAZAPI CREATE-INSTANCE FUNCTION LOADED");
+
 import { validateUserAndCompany } from "./_auth.js";
 
 const BASE_URL = process.env.UAZAPI_BASE_URL || "https://nexus-360.uazapi.com";
 const ADMIN_TOKEN = process.env.UAZAPI_ADMIN_TOKEN || "";
 
 export default async function handler(req: any, res: any) {
+  console.log("HANDLER STARTED");
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método não permitido." });
   }

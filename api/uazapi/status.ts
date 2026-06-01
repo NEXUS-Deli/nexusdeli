@@ -1,8 +1,12 @@
+console.log("UAZAPI STATUS FUNCTION LOADED");
+
 import { validateInstanceAccess } from "./_auth.js";
 
 const BASE_URL = process.env.UAZAPI_BASE_URL || "https://nexus-360.uazapi.com";
 
 export default async function handler(req: any, res: any) {
+  console.log("HANDLER STARTED");
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método não permitido." });
   }
