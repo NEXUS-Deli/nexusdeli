@@ -7,15 +7,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Método não permitido." });
   }
 
-  const { instanceToken } = req.body;
-  if (!instanceToken) {
-    return res.status(400).json({ error: "Token da instância é obrigatório." });
-  }
-
-  const auth = await validateInstanceAccess(req, res, instanceToken);
-  if (!auth) return;
-
   try {
+    const { instanceToken } = req.body || {};
+    if (!instanceToken) {
+      return res.status(400).json({ error: "Token da instância é obrigatório." });
+    }
+
+    const auth = await validateInstanceAccess(req, res, instanceToken);
+    if (!auth) return;
+
     const response = await fetch(`${BASE_URL}/instance/status`, {
       method: "GET",
       headers: {

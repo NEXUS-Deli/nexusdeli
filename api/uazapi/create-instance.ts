@@ -8,15 +8,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Método não permitido." });
   }
 
-  const { name, companyId } = req.body;
-  if (!name || !companyId) {
-    return res.status(400).json({ error: "Nome e ID da empresa são obrigatórios." });
-  }
-
-  const auth = await validateUserAndCompany(req, res, companyId);
-  if (!auth) return;
-
   try {
+    const { name, companyId } = req.body || {};
+    if (!name || !companyId) {
+      return res.status(400).json({ error: "Nome e ID da empresa são obrigatórios." });
+    }
+
+    const auth = await validateUserAndCompany(req, res, companyId);
+    if (!auth) return;
+
     const response = await fetch(`${BASE_URL}/instance/create`, {
       method: "POST",
       headers: {
