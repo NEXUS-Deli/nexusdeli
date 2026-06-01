@@ -125,6 +125,7 @@ function Cardapio() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [companyName, setCompanyName] = useState("Cardapio Digital");
+  const [hasError, setHasError] = useState<string | null>(null);
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -172,6 +173,7 @@ function Cardapio() {
 
   const loadData = async () => {
     setIsLoading(true);
+    setHasError(null);
     try {
       // 1. Fetch company by slug dynamically
       const { data: company, error: companyErr } = await supabase
@@ -182,8 +184,7 @@ function Cardapio() {
 
       if (companyErr || !company) {
         console.error("Empresa não encontrada:", companyErr);
-        toast.error("Empresa não encontrada.");
-        setIsLoading(false);
+        setHasError("O cardápio da empresa solicitada não foi encontrado.");
         return;
       }
 
@@ -192,14 +193,14 @@ function Cardapio() {
       setCompanyName(company.name);
       setCompanySlug(company.slug || "");
 
-      // Inicializa a sessão e dispara PageView
-      try {
-        await TrackingService.initializeSession(activeCompanyId);
-        await TrackingService.trackEvent(activeCompanyId, { eventName: "PageView" });
-      } catch (e) {
-        console.error("Tracking error:", e);
-      }
+      // Inicializa a sessão e dispara PageView de forma assíncrona (fire-and-forget)
+      TrackingService.initializeSession(activeCompanyId)
+        .then(() => {
+          TrackingService.trackEvent(activeCompanyId, { eventName: "PageView" }).catch(console.error);
+        })
+        .catch((e) => console.error("Tracking initialization error:", e));
 
+      // 2. Fetch categories, products, addons in parallel
       const [catResult, prodResult, addonResult] = await Promise.all([
         supabase
           .from("product_categories")
@@ -220,12 +221,16 @@ function Cardapio() {
           .eq("is_active", true),
       ]);
 
+      if (catResult.error) throw catResult.error;
+      if (prodResult.error) throw prodResult.error;
+      if (addonResult.error) throw addonResult.error;
+
       if (catResult.data) setCategories(catResult.data);
       if (prodResult.data) setProducts(prodResult.data);
       if (addonResult.data) setAddons(addonResult.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao carregar cardapio:", err);
-      toast.error("Erro ao carregar o cardapio");
+      setHasError("Não foi possível carregar os produtos do cardápio.");
     } finally {
       setIsLoading(false);
     }
@@ -456,6 +461,20 @@ function Cardapio() {
     ]);
     toast.success(`${product.name} adicionado!`);
   };
+
+  if (hasError) {
+    return (
+      <div style={cardapioTheme} className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-6 text-center">
+        <div className="relative h-12 w-12 rounded-2xl bg-destructive/10 grid place-items-center mb-4 border border-destructive/20">
+          <Flame className="h-6 w-6 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold tracking-tight">Cardápio não encontrado</h2>
+        <p className="mt-2 text-sm text-muted-foreground max-w-xs animate-pulse">
+          {hasError}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

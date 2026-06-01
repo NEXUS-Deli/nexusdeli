@@ -58,7 +58,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, profile, companies, loading, location.pathname, navigate, publicRouteActive, isSuperAdmin, hasCompany]);
 
-  if (loading) {
+  if (loading && !publicRouteActive) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground">
         <div className="relative h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow mb-4 animate-bounce">
