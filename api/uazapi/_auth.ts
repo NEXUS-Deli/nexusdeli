@@ -24,7 +24,15 @@ export function getSupabaseServiceRole() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!url || !serviceKey) {
-    throw new Error("Missing Supabase URL or Service Key");
+    const details = [
+      `SUPABASE_URL: ${process.env.SUPABASE_URL ? "presente" : "ausente"}`,
+      `VITE_SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? "presente" : "ausente"}`,
+      `SUPABASE_SERVICE_ROLE_KEY: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? "presente" : "ausente"}`,
+      `SUPABASE_SERVICE_ROLE: ${process.env.SUPABASE_SERVICE_ROLE ? "presente" : "ausente"}`,
+      `VITE_SUPABASE_ANON_KEY: ${process.env.VITE_SUPABASE_ANON_KEY ? "presente" : "ausente"}`,
+      `SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY ? "presente" : "ausente"}`,
+    ].join(", ");
+    throw new Error(`Missing Supabase URL or Service Key. Diagnóstico: [${details}]`);
   }
 
   supabaseServiceRoleInstance = createClient(url, serviceKey);
