@@ -1,15 +1,6 @@
 // ─── UAZAPI Service ─────────────────────────────────────────────────────────
-// Integração com a API do UAZAPI de forma segura.
-
-const BASE_URL =
-  (typeof import.meta !== "undefined" ? import.meta.env?.VITE_UAZAPI_BASE_URL : undefined) ||
-  (typeof process !== "undefined" ? process.env.UAZAPI_BASE_URL : undefined) ||
-  "https://nexus-360.uazapi.com";
-
-const ADMIN_TOKEN =
-  (typeof import.meta !== "undefined" ? import.meta.env?.VITE_UAZAPI_ADMIN_TOKEN : undefined) ||
-  (typeof process !== "undefined" ? process.env.UAZAPI_ADMIN_TOKEN : undefined) ||
-  "";
+// Cliente proxy para a API do UAZAPI via Vercel Serverless Functions.
+import { supabase } from "@/lib/supabase";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -61,113 +52,91 @@ export interface StatusResponse {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function adminHeaders() {
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
   return {
     "Content-Type": "application/json",
-    admintoken: ADMIN_TOKEN,
+    Authorization: `Bearer ${session?.access_token || ""}`,
   };
 }
 
-function instanceHeaders(token: string) {
-  return {
-    "Content-Type": "application/json",
-    token,
-  };
-}
-
-// ─── API Calls ───────────────────────────────────────────────────────────────
+// ─── Proxy API Calls ─────────────────────────────────────────────────────────
 
 /**
- * Cria uma nova instância no servidor UAZAPI.
+ * Cria uma nova instância no servidor UAZAPI via Serverless Function.
  */
-export async function createInstance(name: string): Promise<CreateInstanceResponse> {
-  const res = await fetch(`${BASE_URL}/instance/create`, {
+export async function createInstance(name: string, companyId: string): Promise<CreateInstanceResponse> {
+  const headers = await getAuthHeaders();
+  const res = await fetch("/api/uazapi/create-instance", {
     method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify({ name }),
+    headers,
+    body: JSON.stringify({ name, companyId }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string })?.error ?? `Erro ao criar instância (${res.status})`);
+    throw new Error(err.error || `Erro ao criar instância (${res.status})`);
   }
 
   return res.json() as Promise<CreateInstanceResponse>;
 }
 
 /**
- * Dispara o processo de conexão de uma instância ao WhatsApp.
+ * Dispara o processo de conexão de uma instância ao WhatsApp via Serverless Function.
  */
 export async function connectInstance(
   instanceToken: string,
   options?: { phone?: string; browser?: string }
 ): Promise<ConnectInstanceResponse> {
-  const body: Record<string, string> = {};
-  if (options?.phone) body.phone = options.phone;
-  if (options?.browser) body.browser = options.browser;
-
-  const res = await fetch(`${BASE_URL}/instance/connect`, {
+  const headers = await getAuthHeaders();
+  const res = await fetch("/api/uazapi/connect", {
     method: "POST",
-    headers: instanceHeaders(instanceToken),
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify({ instanceToken, options }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string })?.error ?? `Erro ao conectar instância (${res.status})`);
+    throw new Error(err.error || `Erro ao conectar instância (${res.status})`);
   }
 
   return res.json() as Promise<ConnectInstanceResponse>;
 }
 
 /**
- * Busca o status atual de uma instância.
+ * Busca o status atual de uma instância via Serverless Function.
  */
 export async function getInstanceStatus(instanceToken: string): Promise<StatusResponse> {
-  const res = await fetch(`${BASE_URL}/instance/status`, {
-    method: "GET",
-    headers: instanceHeaders(instanceToken),
+  const headers = await getAuthHeaders();
+  const res = await fetch("/api/uazapi/status", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ instanceToken }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string })?.error ?? `Erro ao buscar status (${res.status})`);
+    throw new Error(err.error || `Erro ao buscar status (${res.status})`);
   }
 
   return res.json() as Promise<StatusResponse>;
 }
 
 /**
- * Deleta permanentemente uma instância.
+ * Deleta permanentemente uma instância via Serverless Function.
  */
 export async function deleteInstance(instanceToken: string): Promise<{ response: string; info?: string }> {
-  const res = await fetch(`${BASE_URL}/instance`, {
-    method: "DELETE",
-    headers: instanceHeaders(instanceToken),
+  const headers = await getAuthHeaders();
+  const res = await fetch("/api/uazapi/delete-instance", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ instanceToken }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string })?.error ?? `Erro ao deletar instância (${res.status})`);
+    throw new Error(err.error || `Erro ao deletar instância (${res.status})`);
   }
 
   return res.json() as Promise<{ response: string; info?: string }>;
 }
-
-/**
- * Lista todas as instâncias do servidor.
- */
-export async function listAllInstances(): Promise<UazapiInstance[]> {
-  const res = await fetch(`${BASE_URL}/instance/all`, {
-    method: "GET",
-    headers: adminHeaders(),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string })?.error ?? `Erro ao listar instâncias (${res.status})`);
-  }
-
-  return res.json() as Promise<UazapiInstance[]>;
-}
-

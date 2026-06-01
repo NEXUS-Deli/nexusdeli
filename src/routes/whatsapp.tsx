@@ -174,8 +174,9 @@ function WhatsappPage() {
       const companyId = await getCompanyId();
 
       // 1. Criar a instância no UAZAPI
-      const created = await createInstance(instanceName.trim());
+      const created = await createInstance(instanceName.trim(), companyId);
       const token = created.token;
+
       setNewInstanceToken(token);
 
       // 2. Persistir a instância no Supabase vinculada ao company_id
