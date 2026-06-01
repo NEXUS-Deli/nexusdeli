@@ -174,13 +174,17 @@ function Cardapio() {
   const loadData = async () => {
     setIsLoading(true);
     setHasError(null);
+    console.log("[Cardapio] loadData iniciado. Slug:", slug);
     try {
       // 1. Fetch company by slug dynamically
+      console.log("[Cardapio] Buscando dados da empresa pelo slug:", slug);
       const { data: company, error: companyErr } = await supabase
         .from("companies")
         .select("id, name, slug")
         .eq("slug", slug)
         .single();
+
+      console.log("[Cardapio] Resultado da query company:", { company, error: companyErr });
 
       if (companyErr || !company) {
         console.error("Empresa não encontrada:", companyErr);
@@ -194,13 +198,18 @@ function Cardapio() {
       setCompanySlug(company.slug || "");
 
       // Inicializa a sessão e dispara PageView de forma assíncrona (fire-and-forget)
+      console.log("[Cardapio] Disparando tracking de forma assíncrona para ID:", activeCompanyId);
       TrackingService.initializeSession(activeCompanyId)
         .then(() => {
-          TrackingService.trackEvent(activeCompanyId, { eventName: "PageView" }).catch(console.error);
+          console.log("[Cardapio] Sessão de tracking iniciada com sucesso. Disparando PageView.");
+          TrackingService.trackEvent(activeCompanyId, { eventName: "PageView" }).catch((err) => {
+            console.error("[Cardapio] Falha ao enviar PageView:", err);
+          });
         })
         .catch((e) => console.error("Tracking initialization error:", e));
 
       // 2. Fetch categories, products, addons in parallel
+      console.log("[Cardapio] Buscando categorias e produtos...");
       const [catResult, prodResult, addonResult] = await Promise.all([
         supabase
           .from("product_categories")
@@ -221,6 +230,15 @@ function Cardapio() {
           .eq("is_active", true),
       ]);
 
+      console.log("[Cardapio] Resultados do Supabase:", {
+        categories: catResult.data?.length || 0,
+        products: prodResult.data?.length || 0,
+        addons: addonResult.data?.length || 0,
+        catError: catResult.error,
+        prodError: prodResult.error,
+        addonError: addonResult.error,
+      });
+
       if (catResult.error) throw catResult.error;
       if (prodResult.error) throw prodResult.error;
       if (addonResult.error) throw addonResult.error;
@@ -232,6 +250,7 @@ function Cardapio() {
       console.error("Erro ao carregar cardapio:", err);
       setHasError("Não foi possível carregar os produtos do cardápio.");
     } finally {
+      console.log("[Cardapio] Fim do loadData. Definindo isLoading como false.");
       setIsLoading(false);
     }
   };
