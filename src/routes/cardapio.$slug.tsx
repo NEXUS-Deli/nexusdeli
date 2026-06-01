@@ -148,6 +148,49 @@ function Cardapio() {
 
   const categoriesRef = useRef<HTMLDivElement>(null);
 
+  const productAddons = useMemo(() => {
+    if (!selectedProduct) return [];
+    return addons.filter((a) => a.product_id === selectedProduct.id);
+  }, [selectedProduct, addons]);
+
+  const filteredProducts = useMemo(() => {
+    let filtered = products;
+    if (activeCategory !== "all") {
+      filtered = filtered.filter((p) => p.category_id === activeCategory);
+    }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.description?.toLowerCase().includes(term)
+      );
+    }
+    return filtered;
+  }, [products, activeCategory, searchTerm]);
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const addonTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+      return sum + (item.unitPrice + addonTotal) * item.quantity;
+    }, 0);
+  }, [cart]);
+
+  const cartItemsCount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart]);
+
+  const featuredProducts = useMemo(() => {
+    return products.filter((p) => p.is_featured || p.is_promotional).slice(0, 3);
+  }, [products]);
+
+  function getProductPrice(product: ProductRow) {
+    if (product.is_promotional && product.promotional_price) {
+      return product.promotional_price;
+    }
+    return product.price;
+  }
+
   useEffect(() => {
     loadData();
   }, [slug]);
@@ -253,49 +296,6 @@ function Cardapio() {
       console.log("[Cardapio] Fim do loadData. Definindo isLoading como false.");
       setIsLoading(false);
     }
-  };
-
-  const productAddons = useMemo(() => {
-    if (!selectedProduct) return [];
-    return addons.filter((a) => a.product_id === selectedProduct.id);
-  }, [selectedProduct, addons]);
-
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-    if (activeCategory !== "all") {
-      filtered = filtered.filter((p) => p.category_id === activeCategory);
-    }
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(term) ||
-          p.description?.toLowerCase().includes(term)
-      );
-    }
-    return filtered;
-  }, [products, activeCategory, searchTerm]);
-
-  const cartTotal = useMemo(() => {
-    return cart.reduce((sum, item) => {
-      const addonTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
-      return sum + (item.unitPrice + addonTotal) * item.quantity;
-    }, 0);
-  }, [cart]);
-
-  const cartItemsCount = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cart]);
-
-  const featuredProducts = useMemo(() => {
-    return products.filter((p) => p.is_featured || p.is_promotional).slice(0, 3);
-  }, [products]);
-
-  const getProductPrice = (product: ProductRow) => {
-    if (product.is_promotional && product.promotional_price) {
-      return product.promotional_price;
-    }
-    return product.price;
   };
 
   const addToCart = (product: ProductRow) => {
