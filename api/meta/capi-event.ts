@@ -1,4 +1,4 @@
-import { getSupabase } from "../uazapi/_auth.js";
+import { getSupabaseServiceRole } from "../uazapi/_auth.js";
 import { createHash } from "crypto";
 
 function hashData(data: string): string {
@@ -26,7 +26,7 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "companyId e eventId são obrigatórios." });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseServiceRole();
 
     // 1. Buscar configurações de tracking da empresa
     const { data: trackingSettings, error: settingsError } = await supabase

@@ -375,7 +375,7 @@ function Cardapio() {
 
     setIsSubmitting(true);
     try {
-      const result = await createOrder({
+      const payload = {
         companyId: companyId || undefined,
         customer: {
           name: customerName,
@@ -401,65 +401,36 @@ function Cardapio() {
         changeFor:
           paymentMethod === "dinheiro" ? Number(changeFor) || undefined : undefined,
         notes: orderNotes || undefined,
+        sessionId: TrackingService.getSessionUuid(),
+        sessionKey: TrackingService.getOrCreateSessionId().sessionId,
+        clientToken: TrackingService.getCustomerToken() || undefined,
+      };
+
+      const response = await fetch("/api/public/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao processar pedido.");
+      }
+
+      const result = await response.json();
 
       setCart([]);
       setShowCheckout(false);
 
-      // Sincroniza o cliente no CRM e dispara evento de Compra (Purchase)
-      if (companyId) {
-        let clientId = null;
-        try {
-          const cleanPhone = customerPhone.replace(/\D/g, "");
-          const { data: existingClient } = await supabase
-            .from("clients")
-            .select("id")
-            .eq("phone", cleanPhone)
-            .eq("company_id", companyId)
-            .maybeSingle();
-
-          if (existingClient) {
-            clientId = existingClient.id;
-          } else {
-            const { data: newClient } = await supabase
-              .from("clients")
-              .insert({
-                name: customerName.trim(),
-                phone: cleanPhone,
-                company_id: companyId,
-                delivery_id: companyId
-              })
-              .select("id")
-              .single();
-            if (newClient) clientId = newClient.id;
-          }
-
-          if (clientId) {
-            TrackingService.setCustomerToken(clientId);
-          }
-        } catch (e) {
-          console.error("Erro ao sincronizar cliente no CRM:", e);
-        }
-
-        TrackingService.trackEvent(companyId, {
-          eventName: "Purchase",
-          orderId: result.orderId,
-          clientId: clientId || undefined,
-          value: cartTotal,
-          metadata: {
-            customer: {
-              name: customerName,
-              phone: customerPhone,
-            }
-          }
-        }).catch((err) => console.error("Track Purchase err:", err));
+      if (result.clientToken) {
+        TrackingService.setCustomerToken(result.clientToken);
       }
 
       window.open(result.whatsappUrl, "_blank");
       toast.success("Pedido registrado! Redirecionando para o WhatsApp...");
     } catch (err: any) {
       console.error("Erro ao criar pedido:", err);
-      toast.error("Erro ao criar pedido. Tente novamente.");
+      toast.error(err.message || "Erro ao criar pedido. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }

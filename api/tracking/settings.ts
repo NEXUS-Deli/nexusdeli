@@ -1,4 +1,4 @@
-import { getSupabase } from "../uazapi/_auth.js";
+import { getSupabaseServiceRole } from "../uazapi/_auth.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "GET" && req.method !== "POST") {
@@ -9,10 +9,14 @@ export default async function handler(req: any, res: any) {
     const companyId = req.query.companyId || req.body?.companyId;
 
     if (!companyId) {
-      return res.status(400).json({ error: "companyId é obrigatório." });
+      return res.status(200).json({
+        metaPixelId: null,
+        metaEnabled: false,
+        capiEnabled: false,
+      });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseServiceRole();
 
     const { data: settings, error } = await supabase
       .from("company_tracking_settings")
@@ -20,7 +24,14 @@ export default async function handler(req: any, res: any) {
       .eq("company_id", companyId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro na query de tracking settings:", error);
+      return res.status(200).json({
+        metaPixelId: null,
+        metaEnabled: false,
+        capiEnabled: false,
+      });
+    }
 
     return res.status(200).json({
       metaPixelId: settings?.meta_pixel_id || null,
@@ -29,6 +40,10 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error("Erro ao buscar configurações de tracking:", error);
-    return res.status(500).json({ error: error.message || "Erro interno." });
+    return res.status(200).json({
+      metaPixelId: null,
+      metaEnabled: false,
+      capiEnabled: false,
+    });
   }
 }

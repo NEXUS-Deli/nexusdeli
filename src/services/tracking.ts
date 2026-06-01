@@ -54,8 +54,20 @@ function injectMetaPixel(pixelId: string) {
 
 export class TrackingService {
   private static sessionIdKey = "chamai_session_id";
+  private static sessionUuidKey = "chamai_session_uuid";
   private static customerTokenKey = "chamai_customer_token";
+  private static clientTokenKey = "chamai_client_token";
   private static capiEnabledKey = "chamai_capi_enabled";
+
+  static getSessionUuid(): string {
+    if (typeof window === "undefined") return "";
+    let sessionUuid = localStorage.getItem(this.sessionUuidKey);
+    if (!sessionUuid) {
+      sessionUuid = generateUUID();
+      localStorage.setItem(this.sessionUuidKey, sessionUuid);
+    }
+    return sessionUuid;
+  }
 
   static getOrCreateSessionId(): { sessionId: string; isNew: boolean } {
     if (typeof window === "undefined") return { sessionId: "", isNew: false };
@@ -71,11 +83,12 @@ export class TrackingService {
 
   static getCustomerToken(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem(this.customerTokenKey);
+    return localStorage.getItem(this.clientTokenKey) || localStorage.getItem(this.customerTokenKey);
   }
 
   static setCustomerToken(token: string) {
     if (typeof window === "undefined") return;
+    localStorage.setItem(this.clientTokenKey, token);
     localStorage.setItem(this.customerTokenKey, token);
   }
 
@@ -85,8 +98,10 @@ export class TrackingService {
       return { metaPixelId: null, metaEnabled: false };
     }
 
+    const sessionUuid = this.getSessionUuid();
     const { sessionId, isNew } = this.getOrCreateSessionId();
     const clientId = this.getCustomerToken();
+    const customerTokenStr = localStorage.getItem(this.clientTokenKey) || localStorage.getItem(this.customerTokenKey) || "";
 
     // Parse URL parameters for UTMs and source/context
     const params = new URLSearchParams(window.location.search);
@@ -142,24 +157,28 @@ export class TrackingService {
     if (isNew) {
       try {
         const { error } = await supabase.from("customer_sessions").insert({
-          id: sessionId,
+          id: sessionUuid,
           company_id: companyId,
           client_id: clientId || null,
+          session_id: sessionId,
+          customer_token: customerTokenStr,
           context,
           source,
           utms,
           device_info: deviceInfo,
         });
-        if (error) console.error("Erro ao salvar sessão:", error);
-      } catch (e) {
-        console.error("Erro ao inicializar customer session:", e);
+        if (error) {
+          console.error("Erro ao salvar sessão:", error.message, error.details, error.hint);
+        }
+      } catch (e: any) {
+        console.error("Erro ao inicializar customer session:", e.message || e);
       }
     } else {
       // Securely update last_seen / metadata via Serverless endpoint
       fetch("/api/tracking/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, companyId, clientId }),
+        body: JSON.stringify({ sessionId: sessionUuid, companyId, clientId }),
       }).catch((e) => console.error("Erro ao atualizar last_seen via API:", e));
     }
 
@@ -187,15 +206,17 @@ export class TrackingService {
   static async trackEvent(companyId: string, payload: TrackingEventPayload) {
     if (typeof window === "undefined" || !companyId) return;
 
+    const sessionUuid = this.getSessionUuid();
     const { sessionId } = this.getOrCreateSessionId();
     const clientId = payload.clientId || this.getCustomerToken() || undefined;
     const eventId = generateUUID();
+    const uniqueEventId = generateUUID();
 
     try {
       // 1. Save Event to tracking_events (Allowed via SELECT/INSERT Policies)
       const { error: eventError } = await supabase.from("tracking_events").insert({
         id: eventId,
-        session_id: sessionId,
+        session_id: sessionUuid,
         company_id: companyId,
         event_name: payload.eventName,
         product_id: payload.productId || null,
@@ -204,10 +225,12 @@ export class TrackingService {
         value: payload.value || null,
         currency: "BRL",
         metadata: payload.metadata || {},
+        event_id: uniqueEventId,
+        session_key: sessionId,
       });
 
       if (eventError) {
-        console.error("Erro ao salvar evento de tracking:", eventError);
+        console.error("Erro ao salvar evento:", eventError.message, eventError.details, eventError.hint);
         return;
       }
 
@@ -241,7 +264,7 @@ export class TrackingService {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId,
+          sessionId: sessionUuid,
           companyId,
           clientId: clientId || null,
           abandonmentScore: score,

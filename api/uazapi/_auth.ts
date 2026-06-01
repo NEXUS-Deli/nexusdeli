@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 let supabaseInstance: any = null;
+let supabaseServiceRoleInstance: any = null;
 
 export function getSupabase() {
   if (supabaseInstance) return supabaseInstance;
@@ -14,6 +15,20 @@ export function getSupabase() {
 
   supabaseInstance = createClient(url, anonKey);
   return supabaseInstance;
+}
+
+export function getSupabaseServiceRole() {
+  if (supabaseServiceRoleInstance) return supabaseServiceRoleInstance;
+
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+  if (!url || !serviceKey) {
+    throw new Error("Missing Supabase URL or Service Key");
+  }
+
+  supabaseServiceRoleInstance = createClient(url, serviceKey);
+  return supabaseServiceRoleInstance;
 }
 
 export async function validateUserAndCompany(req: any, res: any, companyId: string) {
