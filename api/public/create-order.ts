@@ -243,7 +243,8 @@ export default async function handler(req: any, res: any) {
       .single();
 
     if (companyErr || !company) {
-      return res.status(404).json({ error: "Empresa não encontrada ou inativa." });
+      const dbErrInfo = companyErr ? `Code: ${companyErr.code}, Message: ${companyErr.message}, Details: ${companyErr.details}` : "Nenhuma linha retornada";
+      return res.status(404).json({ error: `Empresa não encontrada ou inativa. Detalhes: [${dbErrInfo}]` });
     }
 
     let subtotal = 0;
